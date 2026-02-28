@@ -112,6 +112,7 @@
             "pages": [
               "api/utils",
               "api/jit",
+              "api/export",
               "api/distributed",
               "api/quantization"
             ]
