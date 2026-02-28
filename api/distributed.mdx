@@ -1,0 +1,518 @@
+---
+title: 'torch.distributed'
+description: 'Distributed training and communication API'
+---
+
+# Distributed Training
+
+The `torch.distributed` package supports distributed training across multiple processes and machines. It provides communication primitives and high-level APIs for data parallelism and model parallelism.
+
+## Initialization
+
+### init_process_group
+
+```python
+torch.distributed.init_process_group(
+    backend,
+    init_method=None,
+    timeout=default_pg_timeout,
+    world_size=-1,
+    rank=-1,
+    store=None,
+    group_name='',
+    pg_options=None
+)
+```
+
+Initializes the default distributed process group.
+
+<ParamField path="backend" type="str">
+  The backend to use. Valid values include `'nccl'`, `'gloo'`, `'mpi'`.
+</ParamField>
+
+<ParamField path="init_method" type="str" default="None">
+  URL specifying how to initialize the process group. If not specified, `'env://'` is used.
+</ParamField>
+
+<ParamField path="world_size" type="int" default="-1">
+  Number of processes participating in the job. Required if store is specified.
+</ParamField>
+
+<ParamField path="rank" type="int" default="-1">
+  Rank of the current process. Required if store is specified.
+</ParamField>
+
+<ParamField path="timeout" type="timedelta" default="default_pg_timeout">
+  Timeout for operations executed against the process group.
+</ParamField>
+
+### is_initialized
+
+```python
+torch.distributed.is_initialized()
+```
+
+Checks if the default process group has been initialized.
+
+<ResponseField name="Returns" type="bool">
+  `True` if the default process group has been initialized, `False` otherwise.
+</ResponseField>
+
+### get_rank
+
+```python
+torch.distributed.get_rank(group=None)
+```
+
+Returns the rank of the current process in the provided group.
+
+<ParamField path="group" type="ProcessGroup" default="None">
+  The process group to work on. If None, the default process group is used.
+</ParamField>
+
+<ResponseField name="Returns" type="int">
+  The rank of the process group (-1 if not part of the group).
+</ResponseField>
+
+### get_world_size
+
+```python
+torch.distributed.get_world_size(group=None)
+```
+
+Returns the number of processes in the current process group.
+
+<ParamField path="group" type="ProcessGroup" default="None">
+  The process group to work on.
+</ParamField>
+
+<ResponseField name="Returns" type="int">
+  The world size of the process group.
+</ResponseField>
+
+## Communication Primitives
+
+### send
+
+```python
+torch.distributed.send(tensor, dst, group=None, tag=0)
+```
+
+Sends a tensor synchronously.
+
+<ParamField path="tensor" type="Tensor">
+  Tensor to send.
+</ParamField>
+
+<ParamField path="dst" type="int">
+  Destination rank.
+</ParamField>
+
+<ParamField path="group" type="ProcessGroup" default="None">
+  The process group to work on.
+</ParamField>
+
+### recv
+
+```python
+torch.distributed.recv(tensor, src=None, group=None, tag=0)
+```
+
+Receives a tensor synchronously.
+
+<ParamField path="tensor" type="Tensor">
+  Tensor to fill with received data.
+</ParamField>
+
+<ParamField path="src" type="int" default="None">
+  Source rank. If None, will receive from any process.
+</ParamField>
+
+### broadcast
+
+```python
+torch.distributed.broadcast(
+    tensor,
+    src,
+    group=None,
+    async_op=False
+)
+```
+
+Broadcasts the tensor to the whole group.
+
+<ParamField path="tensor" type="Tensor">
+  Data to be sent if `src` is the rank of current process, and tensor to be used to save received data otherwise.
+</ParamField>
+
+<ParamField path="src" type="int">
+  Source rank.
+</ParamField>
+
+<ParamField path="async_op" type="bool" default="False">
+  Whether this op should be an async op.
+</ParamField>
+
+### all_reduce
+
+```python
+torch.distributed.all_reduce(
+    tensor,
+    op=ReduceOp.SUM,
+    group=None,
+    async_op=False
+)
+```
+
+Reduces the tensor data across all machines in such a way that all get the final result.
+
+<ParamField path="tensor" type="Tensor">
+  Input and output of the collective. The function operates in-place.
+</ParamField>
+
+<ParamField path="op" type="ReduceOp" default="ReduceOp.SUM">
+  One of the values from `torch.distributed.ReduceOp` enum. Specifies an operation used for element-wise reductions.
+</ParamField>
+
+### reduce
+
+```python
+torch.distributed.reduce(
+    tensor,
+    dst,
+    op=ReduceOp.SUM,
+    group=None,
+    async_op=False
+)
+```
+
+Reduces the tensor data across all machines.
+
+<ParamField path="tensor" type="Tensor">
+  Input and output of the collective.
+</ParamField>
+
+<ParamField path="dst" type="int">
+  Destination rank.
+</ParamField>
+
+### all_gather
+
+```python
+torch.distributed.all_gather(
+    tensor_list,
+    tensor,
+    group=None,
+    async_op=False
+)
+```
+
+Gathers tensors from the whole group in a list.
+
+<ParamField path="tensor_list" type="list[Tensor]">
+  Output list. It should contain correctly-sized tensors to be used for output of the collective.
+</ParamField>
+
+<ParamField path="tensor" type="Tensor">
+  Tensor to be broadcast from current process.
+</ParamField>
+
+### gather
+
+```python
+torch.distributed.gather(
+    tensor,
+    gather_list=None,
+    dst=0,
+    group=None,
+    async_op=False
+)
+```
+
+Gathers a list of tensors in a single process.
+
+<ParamField path="tensor" type="Tensor">
+  Input tensor.
+</ParamField>
+
+<ParamField path="gather_list" type="list[Tensor]" default="None">
+  List of appropriately-sized tensors to use for received data (required in the receiving process).
+</ParamField>
+
+<ParamField path="dst" type="int" default="0">
+  Destination rank.
+</ParamField>
+
+### scatter
+
+```python
+torch.distributed.scatter(
+    tensor,
+    scatter_list=None,
+    src=0,
+    group=None,
+    async_op=False
+)
+```
+
+Scatters a list of tensors to all processes in a group.
+
+<ParamField path="tensor" type="Tensor">
+  Output tensor.
+</ParamField>
+
+<ParamField path="scatter_list" type="list[Tensor]" default="None">
+  List of tensors to scatter (required in the source process).
+</ParamField>
+
+<ParamField path="src" type="int" default="0">
+  Source rank.
+</ParamField>
+
+### barrier
+
+```python
+torch.distributed.barrier(group=None, async_op=False, device_ids=None)
+```
+
+Synchronizes all processes. This collective blocks processes until the whole group enters this function.
+
+<ParamField path="group" type="ProcessGroup" default="None">
+  The process group to work on.
+</ParamField>
+
+<ParamField path="async_op" type="bool" default="False">
+  Whether this op should be an async op.
+</ParamField>
+
+## High-Level APIs
+
+### DistributedDataParallel
+
+```python
+torch.nn.parallel.DistributedDataParallel(
+    module,
+    device_ids=None,
+    output_device=None,
+    dim=0,
+    broadcast_buffers=True,
+    process_group=None,
+    bucket_cap_mb=25,
+    find_unused_parameters=False,
+    check_reduction=False,
+    gradient_as_bucket_view=False,
+    static_graph=False
+)
+```
+
+Implements distributed data parallelism at the module level.
+
+<ParamField path="module" type="Module">
+  Module to be parallelized.
+</ParamField>
+
+<ParamField path="device_ids" type="list[int or torch.device]" default="None">
+  CUDA devices for single-device modules.
+</ParamField>
+
+<ParamField path="find_unused_parameters" type="bool" default="False">
+  Whether to find unused parameters. Useful for models with conditional execution.
+</ParamField>
+
+<ParamField path="gradient_as_bucket_view" type="bool" default="False">
+  Whether gradients should be views into the DDP bucket.
+</ParamField>
+
+## Distributed Samplers
+
+### DistributedSampler
+
+```python
+torch.utils.data.distributed.DistributedSampler(
+    dataset,
+    num_replicas=None,
+    rank=None,
+    shuffle=True,
+    seed=0,
+    drop_last=False
+)
+```
+
+Sampler that restricts data loading to a subset of the dataset. Especially useful in conjunction with `DistributedDataParallel`.
+
+<ParamField path="dataset" type="Dataset">
+  Dataset to be sampled.
+</ParamField>
+
+<ParamField path="num_replicas" type="int" default="None">
+  Number of processes participating in distributed training.
+</ParamField>
+
+<ParamField path="rank" type="int" default="None">
+  Rank of the current process within `num_replicas`.
+</ParamField>
+
+<ParamField path="shuffle" type="bool" default="True">
+  If `True`, sampler will shuffle the indices.
+</ParamField>
+
+## Example Usage
+
+<CodeGroup>
+```python Basic Setup
+import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
+
+def setup(rank, world_size):
+    """Initialize the distributed environment."""
+    dist.init_process_group(
+        backend='nccl',
+        init_method='tcp://127.0.0.1:29500',
+        world_size=world_size,
+        rank=rank
+    )
+
+def cleanup():
+    dist.destroy_process_group()
+
+def demo_basic(rank, world_size):
+    setup(rank, world_size)
+    
+    # Create a tensor
+    tensor = torch.ones(2, 2).to(rank)
+    
+    # All-reduce operation
+    dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+    print(f'Rank {rank}: {tensor}')
+    
+    cleanup()
+
+if __name__ == '__main__':
+    world_size = 2
+    mp.spawn(demo_basic, args=(world_size,), nprocs=world_size)
+```
+
+```python DistributedDataParallel
+import torch
+import torch.nn as nn
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+
+def setup(rank, world_size):
+    dist.init_process_group('nccl', rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
+
+def train(rank, world_size):
+    setup(rank, world_size)
+    
+    # Create model and move it to GPU
+    model = nn.Linear(10, 10).to(rank)
+    ddp_model = DDP(model, device_ids=[rank])
+    
+    # Training loop
+    optimizer = torch.optim.SGD(ddp_model.parameters(), lr=0.01)
+    
+    for epoch in range(10):
+        optimizer.zero_grad()
+        outputs = ddp_model(torch.randn(20, 10).to(rank))
+        loss = outputs.sum()
+        loss.backward()
+        optimizer.step()
+    
+    dist.destroy_process_group()
+```
+
+```python Distributed Sampler
+import torch
+from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.distributed import DistributedSampler
+import torch.distributed as dist
+
+class MyDataset(Dataset):
+    def __init__(self, size):
+        self.size = size
+    
+    def __len__(self):
+        return self.size
+    
+    def __getitem__(self, idx):
+        return torch.randn(10), torch.tensor(idx)
+
+def train_with_sampler(rank, world_size):
+    dist.init_process_group('nccl', rank=rank, world_size=world_size)
+    
+    # Create dataset and sampler
+    dataset = MyDataset(1000)
+    sampler = DistributedSampler(
+        dataset,
+        num_replicas=world_size,
+        rank=rank,
+        shuffle=True
+    )
+    
+    # Create dataloader
+    dataloader = DataLoader(
+        dataset,
+        batch_size=32,
+        sampler=sampler
+    )
+    
+    for epoch in range(5):
+        sampler.set_epoch(epoch)  # Important for shuffling
+        for data, labels in dataloader:
+            # Training code here
+            pass
+    
+    dist.destroy_process_group()
+```
+
+```python Communication Example
+import torch
+import torch.distributed as dist
+
+def communication_demo(rank, world_size):
+    dist.init_process_group('nccl', rank=rank, world_size=world_size)
+    device = torch.device(f'cuda:{rank}')
+    
+    # Broadcast
+    if rank == 0:
+        tensor = torch.tensor([1, 2, 3], device=device)
+    else:
+        tensor = torch.zeros(3, device=device)
+    dist.broadcast(tensor, src=0)
+    print(f'Rank {rank} after broadcast: {tensor}')
+    
+    # All-gather
+    tensor = torch.tensor([rank], device=device)
+    tensor_list = [torch.zeros(1, device=device) for _ in range(world_size)]
+    dist.all_gather(tensor_list, tensor)
+    print(f'Rank {rank} gathered: {tensor_list}')
+    
+    # Barrier
+    dist.barrier()
+    print(f'Rank {rank} passed barrier')
+    
+    dist.destroy_process_group()
+```
+</CodeGroup>
+
+## Backends
+
+<Accordion title="NCCL Backend">
+  - Recommended for NVIDIA GPUs
+  - Best performance for GPU-to-GPU communication
+  - Supports collective operations on CUDA tensors
+</Accordion>
+
+<Accordion title="Gloo Backend">
+  - Supports both CPU and GPU
+  - Good for CPU-based distributed training
+  - Cross-platform support (Linux, macOS, Windows)
+</Accordion>
+
+<Accordion title="MPI Backend">
+  - Requires MPI implementation (e.g., OpenMPI)
+  - Good for HPC environments
+  - Supports both CPU and GPU
+</Accordion>

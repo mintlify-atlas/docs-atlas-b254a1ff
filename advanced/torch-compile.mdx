@@ -1,0 +1,469 @@
+---
+title: 'torch.compile'
+description: 'Optimize PyTorch models with compilation for faster execution'
+---
+
+`torch.compile` is PyTorch's JIT compiler that optimizes your models for faster execution. Introduced in PyTorch 2.0, it uses TorchDynamo to capture computation graphs and TorchInductor to generate optimized kernels.
+
+## Quick Start
+
+Optimizing a model is as simple as wrapping it with `torch.compile`:
+
+```python
+import torch
+
+# Create your model
+model = MyModel().cuda()
+
+# Compile it!
+compiled_model = torch.compile(model)
+
+# Use it like normal
+output = compiled_model(input)
+```
+
+<Note>
+The first run with `torch.compile` will be slower due to compilation overhead. Subsequent runs will be significantly faster.
+</Note>
+
+## How torch.compile Works
+
+<Steps>
+  <Step title="Graph Capture (TorchDynamo)">
+    TorchDynamo intercepts Python bytecode and captures the computation graph:
+
+    ```python
+    # Your code
+    x = torch.randn(10, 10)
+    y = x + 1
+    z = y * 2
+    
+    # TorchDynamo captures this as a graph:
+    # add(x, 1) -> mul(result, 2)
+    ```
+  </Step>
+
+  <Step title="Optimization (Compiler Backend)">
+    The graph is optimized using a backend (default: TorchInductor):
+
+    - Operator fusion
+    - Memory layout optimization
+    - Kernel optimization
+  </Step>
+
+  <Step title="Code Generation">
+    Optimized code is generated and cached for future use:
+
+    ```python
+    # First run: compiles (slower)
+    output = compiled_model(input)  # ~100ms
+    
+    # Subsequent runs: uses cached version (faster)
+    output = compiled_model(input)  # ~10ms
+    ```
+  </Step>
+</Steps>
+
+## Compilation Modes
+
+`torch.compile` supports different optimization modes:
+
+<CodeGroup>
+```python default (Balanced)
+# Good balance of compilation time and runtime performance
+compiled_model = torch.compile(model, mode='default')
+```
+
+```python reduce-overhead (Eager Compilation)
+# Optimize compilation time, reduce Python overhead
+compiled_model = torch.compile(model, mode='reduce-overhead')
+```
+
+```python max-autotune (Maximum Performance)
+# Extensive optimization, longer compilation time
+compiled_model = torch.compile(model, mode='max-autotune')
+```
+</CodeGroup>
+
+### Mode Comparison
+
+| Mode | Compilation Time | Runtime Speed | Use Case |
+|------|------------------|---------------|----------|
+| `default` | Moderate | Fast | General purpose |
+| `reduce-overhead` | Fast | Moderate | Development, debugging |
+| `max-autotune` | Slow | Fastest | Production, inference |
+
+## Compilation Backends
+
+Choose different backends for specific use cases:
+
+```python
+# Default: TorchInductor (recommended)
+compiled = torch.compile(model, backend='inductor')
+
+# ONNX Runtime
+compiled = torch.compile(model, backend='onnxrt')
+
+# Eager mode (no compilation, for debugging)
+compiled = torch.compile(model, backend='eager')
+
+# Custom backend
+compiled = torch.compile(model, backend=my_custom_backend)
+```
+
+<Accordion title="TorchInductor (Default)">
+Generates optimized Triton/C++ kernels. Best for NVIDIA GPUs and CPUs.
+
+**Pros**: Fast, good GPU utilization, automatic kernel fusion  
+**Cons**: Initial compilation overhead
+</Accordion>
+
+<Accordion title="ONNX Runtime">
+Exports to ONNX and runs with ONNX Runtime.
+
+**Pros**: Cross-platform, good for deployment  
+**Cons**: Limited operator support
+</Accordion>
+
+## Dynamic Shapes
+
+By default, `torch.compile` assumes static input shapes. For dynamic shapes:
+
+```python
+import torch
+
+# Enable dynamic shapes
+compiled_model = torch.compile(
+    model,
+    dynamic=True  # Allow varying input shapes
+)
+
+# Now works with different shapes
+out1 = compiled_model(torch.randn(32, 3, 224, 224))
+out2 = compiled_model(torch.randn(64, 3, 224, 224))  # Different batch size
+```
+
+<Warning>
+Dynamic shapes can reduce optimization opportunities. Use static shapes when possible for best performance.
+</Warning>
+
+### Constrained Dynamic Shapes
+
+Specify constraints for better optimization:
+
+```python
+# Only batch dimension is dynamic, others are static
+x = torch.randn(32, 3, 224, 224)
+
+compiled_model = torch.compile(
+    model,
+    dynamic=True,
+    options={
+        "shape_padding": True,  # Pad shapes to multiples
+        "max_autotune": True
+    }
+)
+```
+
+## Full vs Partial Graph Compilation
+
+Control what gets compiled:
+
+### Full Graph Mode (Default)
+
+```python
+# Compile entire model
+compiled_model = torch.compile(model, fullgraph=True)
+```
+
+Requires the entire model to be compilable. Fails if any unsupported operations are found.
+
+### Partial Graph Mode
+
+```python
+# Compile what's possible, fall back to eager for rest
+compiled_model = torch.compile(model, fullgraph=False)
+```
+
+Compiles supported subgraphs and falls back to eager execution for unsupported operations.
+
+## Disabling Compilation
+
+Selectively disable compilation for parts of your code:
+
+```python
+import torch._dynamo as dynamo
+
+@dynamo.disable
+def debug_function(x):
+    # This function won't be compiled
+    print(f"Debug: {x.shape}")
+    return x
+
+class MyModel(nn.Module):
+    def forward(self, x):
+        x = self.layer1(x)
+        x = debug_function(x)  # Not compiled
+        x = self.layer2(x)     # Compiled
+        return x
+
+compiled_model = torch.compile(MyModel())
+```
+
+## Compilation with Training
+
+Use `torch.compile` in training loops:
+
+```python
+model = MyModel().cuda()
+optimizer = torch.optim.Adam(model.parameters())
+
+# Compile the model
+compiled_model = torch.compile(model, mode='reduce-overhead')
+
+for epoch in range(num_epochs):
+    for batch in dataloader:
+        optimizer.zero_grad()
+        
+        # Compiled forward pass
+        output = compiled_model(batch)
+        loss = criterion(output, target)
+        
+        # Backward pass is also optimized
+        loss.backward()
+        optimizer.step()
+```
+
+<Note>
+Both forward and backward passes are optimized by `torch.compile`. Gradient computation is automatically included in the compiled graph.
+</Note>
+
+## Distributed Training
+
+Combine `torch.compile` with DDP/FSDP:
+
+```python
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.distributed as dist
+
+# Initialize distributed
+dist.init_process_group(backend='nccl')
+
+# Compile first, then wrap with DDP
+model = MyModel().cuda()
+compiled_model = torch.compile(model)
+ddp_model = DDP(compiled_model, device_ids=[local_rank])
+
+# Training loop
+for batch in dataloader:
+    output = ddp_model(batch)
+    loss = criterion(output, target)
+    loss.backward()
+    optimizer.step()
+```
+
+<Warning>
+**Compilation Order Matters:**
+
+1. Compile model with `torch.compile`
+2. Then wrap with DDP/FSDP
+
+Wrapping in the wrong order may reduce optimization effectiveness.
+</Warning>
+
+## Mixed Precision with torch.compile
+
+```python
+from torch.amp import autocast, GradScaler
+
+model = torch.compile(MyModel().cuda())
+scaler = GradScaler(device='cuda')
+
+for batch in dataloader:
+    optimizer.zero_grad()
+    
+    with autocast(device_type='cuda', dtype=torch.bfloat16):
+        output = model(batch)  # Compiled + AMP
+        loss = criterion(output, target)
+    
+    scaler.scale(loss).backward()
+    scaler.step(optimizer)
+    scaler.update()
+```
+
+## Debugging Compilation
+
+### View Compilation Graphs
+
+```python
+import torch._dynamo as dynamo
+
+# Enable verbose logging
+dynamo.config.verbose = True
+
+# Compile and see what's happening
+compiled_model = torch.compile(model)
+output = compiled_model(input)
+```
+
+### Explain Compilation
+
+See what got compiled:
+
+```python
+explanation = torch._dynamo.explain(model)(input)
+print(explanation)
+```
+
+Output shows:
+- Which parts were compiled
+- Which parts fell back to eager
+- Why compilation failed for certain operations
+
+### Reset Compilation Cache
+
+```python
+import torch._dynamo as dynamo
+
+# Clear compilation cache
+dynamo.reset()
+
+# Force recompilation
+output = compiled_model(input)
+```
+
+## Performance Tips
+
+### When to Use torch.compile
+
+<CodeGroup>
+```python Good Use Cases
+# Models with static shapes
+compiled = torch.compile(vision_model)
+
+# Repetitive operations (training loops)
+for batch in dataloader:
+    output = compiled_model(batch)
+
+# Production inference
+with torch.no_grad():
+    predictions = compiled_model(input)
+```
+
+```python Avoid torch.compile
+# Highly dynamic shapes
+for seq_len in varying_lengths:
+    output = model(input[:, :seq_len])  # Recompiles each time
+
+# One-time operations
+single_output = model(input)  # Compilation overhead not worth it
+
+# Heavy Python control flow
+if random.random() > 0.5:
+    output = model.branch_a(x)
+else:
+    output = model.branch_b(x)  # Graph breaks
+```
+</CodeGroup>
+
+### Reduce Compilation Overhead
+
+```python
+# Use smaller models during development
+model = SmallModel()
+compiled = torch.compile(model, mode='reduce-overhead')
+
+# Switch to max performance for production
+compiled = torch.compile(model, mode='max-autotune')
+```
+
+### Optimize for Specific Hardware
+
+```python
+# CUDA-specific optimizations
+compiled = torch.compile(
+    model,
+    mode='max-autotune',
+    options={
+        'triton.cudagraphs': True,  # Enable CUDA graphs
+        'shape_padding': True,       # Pad to optimal sizes
+    }
+)
+```
+
+## Limitations and Workarounds
+
+<Warning>
+**Current Limitations:**
+
+- Some operations cause graph breaks (e.g., `print()`, `pdb`)
+- Data-dependent control flow may not compile
+- Mutation of external state can cause issues
+- First run is slower due to compilation
+</Warning>
+
+### Handling Graph Breaks
+
+```python
+# Avoid: Python operations that break graphs
+def forward(self, x):
+    print(x.shape)  # Graph break!
+    return self.layer(x)
+
+# Better: Remove debug statements or use torch operations
+def forward(self, x):
+    # Use torch operations instead
+    return self.layer(x)
+```
+
+### Reduce Recompilations
+
+```python
+# Pad inputs to consistent shapes
+def pad_to_multiple(x, multiple=8):
+    batch, seq_len = x.shape
+    padded_len = ((seq_len + multiple - 1) // multiple) * multiple
+    return F.pad(x, (0, padded_len - seq_len))
+
+# Use padded inputs
+input_padded = pad_to_multiple(input)
+output = compiled_model(input_padded)
+```
+
+## Benchmarking
+
+Compare compiled vs eager performance:
+
+```python
+import time
+
+model = MyModel().cuda()
+compiled_model = torch.compile(model)
+input = torch.randn(32, 3, 224, 224).cuda()
+
+# Warmup
+for _ in range(10):
+    _ = compiled_model(input)
+
+# Benchmark
+start = time.time()
+for _ in range(100):
+    output = compiled_model(input)
+torch.cuda.synchronize()
+compiled_time = time.time() - start
+
+# Compare with eager
+start = time.time()
+for _ in range(100):
+    output = model(input)
+torch.cuda.synchronize()
+eager_time = time.time() - start
+
+print(f"Speedup: {eager_time / compiled_time:.2f}x")
+```
+
+## Related Resources
+
+- [Distributed Training](/advanced/distributed-training) - Use with DDP/FSDP
+- [Mixed Precision](/advanced/mixed-precision) - Combine with AMP
+- [Official torch.compile Tutorial](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html)

@@ -1,0 +1,524 @@
+---
+title: 'torch.special'
+description: 'Special mathematical functions'
+---
+
+# Special Mathematical Functions
+
+The `torch.special` module provides special mathematical functions including gamma functions, error functions, Bessel functions, and orthogonal polynomials.
+
+## Gamma Functions
+
+### gammaln
+
+```python
+torch.special.gammaln(input, *, out=None)
+```
+
+Computes the natural logarithm of the absolute value of the gamma function.
+
+<ParamField path="input" type="Tensor">
+  The input tensor.
+</ParamField>
+
+<ResponseField name="Returns" type="Tensor">
+  Natural log of the absolute value of Gamma function: `ln(|Γ(input)|)`
+</ResponseField>
+
+### digamma
+
+```python
+torch.special.digamma(input, *, out=None)
+```
+
+Computes the logarithmic derivative of the gamma function (also called psi function).
+
+<ParamField path="input" type="Tensor">
+  The input tensor.
+</ParamField>
+
+<ResponseField name="Returns" type="Tensor">
+  Digamma function: `ψ(x) = d/dx ln(Γ(x)) = Γ'(x)/Γ(x)`
+</ResponseField>
+
+### polygamma
+
+```python
+torch.special.polygamma(n, input, *, out=None)
+```
+
+Computes the nth derivative of the digamma function.
+
+<ParamField path="n" type="int">
+  The order of the polygamma function (n ≥ 0).
+</ParamField>
+
+<ParamField path="input" type="Tensor">
+  The input tensor.
+</ParamField>
+
+### multigammaln
+
+```python
+torch.special.multigammaln(input, p, *, out=None)
+```
+
+Computes the multivariate log-gamma function with dimension p.
+
+<ParamField path="input" type="Tensor">
+  The input tensor.
+</ParamField>
+
+<ParamField path="p" type="int">
+  The number of dimensions.
+</ParamField>
+
+### gammainc / gammaincc
+
+```python
+torch.special.gammainc(input, other, *, out=None)
+torch.special.gammaincc(input, other, *, out=None)
+```
+
+Computes the regularized lower/upper incomplete gamma function.
+
+<ParamField path="input" type="Tensor">
+  The first non-negative input tensor.
+</ParamField>
+
+<ParamField path="other" type="Tensor">
+  The second non-negative input tensor.
+</ParamField>
+
+## Error Functions
+
+### erf
+
+```python
+torch.special.erf(input, *, out=None)
+```
+
+Computes the error function.
+
+<ParamField path="input" type="Tensor">
+  The input tensor.
+</ParamField>
+
+<ResponseField name="Returns" type="Tensor">
+  Error function: `erf(x) = (2/√π) ∫₀ˣ e^(-t²) dt`
+</ResponseField>
+
+### erfc
+
+```python
+torch.special.erfc(input, *, out=None)
+```
+
+Computes the complementary error function: `erfc(x) = 1 - erf(x)`.
+
+### erfcx
+
+```python
+torch.special.erfcx(input, *, out=None)
+```
+
+Computes the scaled complementary error function: `erfcx(x) = e^(x²) * erfc(x)`.
+
+### erfinv
+
+```python
+torch.special.erfinv(input, *, out=None)
+```
+
+Computes the inverse error function.
+
+<ParamField path="input" type="Tensor">
+  The input tensor (values must be in (-1, 1)).
+</ParamField>
+
+### ndtr
+
+```python
+torch.special.ndtr(input, *, out=None)
+```
+
+Computes the area under the standard Gaussian probability density function, integrated from minus infinity to input.
+
+<ResponseField name="Returns" type="Tensor">
+  Standard normal CDF: `Φ(x) = (1/√(2π)) ∫₋∞ˣ e^(-t²/2) dt`
+</ResponseField>
+
+### ndtri
+
+```python
+torch.special.ndtri(input, *, out=None)
+```
+
+Computes the inverse of `ndtr` (quantile function for standard normal distribution).
+
+### log_ndtr
+
+```python
+torch.special.log_ndtr(input, *, out=None)
+```
+
+Computes the log of the standard normal CDF.
+
+## Bessel Functions
+
+### bessel_j0 / bessel_j1
+
+```python
+torch.special.bessel_j0(input, *, out=None)
+torch.special.bessel_j1(input, *, out=None)
+```
+
+Bessel function of the first kind of order 0 and 1.
+
+### bessel_y0 / bessel_y1
+
+```python
+torch.special.bessel_y0(input, *, out=None)
+torch.special.bessel_y1(input, *, out=None)
+```
+
+Bessel function of the second kind of order 0 and 1.
+
+### modified_bessel_i0 / modified_bessel_i1
+
+```python
+torch.special.modified_bessel_i0(input, *, out=None)
+torch.special.modified_bessel_i1(input, *, out=None)
+```
+
+Modified Bessel function of the first kind of order 0 and 1.
+
+### modified_bessel_k0 / modified_bessel_k1
+
+```python
+torch.special.modified_bessel_k0(input, *, out=None)
+torch.special.modified_bessel_k1(input, *, out=None)
+```
+
+Modified Bessel function of the second kind of order 0 and 1.
+
+### i0 / i0e / i1 / i1e
+
+```python
+torch.special.i0(input, *, out=None)
+torch.special.i0e(input, *, out=None)  # exponentially scaled
+torch.special.i1(input, *, out=None)
+torch.special.i1e(input, *, out=None)  # exponentially scaled
+```
+
+Modified Bessel functions (aliases and scaled versions).
+
+### spherical_bessel_j0
+
+```python
+torch.special.spherical_bessel_j0(input, *, out=None)
+```
+
+Spherical Bessel function of the first kind of order 0.
+
+## Orthogonal Polynomials
+
+### chebyshev_polynomial_t / u / v / w
+
+```python
+torch.special.chebyshev_polynomial_t(input, n, *, out=None)
+torch.special.chebyshev_polynomial_u(input, n, *, out=None)
+torch.special.chebyshev_polynomial_v(input, n, *, out=None)
+torch.special.chebyshev_polynomial_w(input, n, *, out=None)
+```
+
+Chebyshev polynomials of the first, second, third, and fourth kinds.
+
+<ParamField path="input" type="Tensor">
+  The input values.
+</ParamField>
+
+<ParamField path="n" type="Tensor">
+  Degree of the polynomial.
+</ParamField>
+
+### hermite_polynomial_h / he
+
+```python
+torch.special.hermite_polynomial_h(input, n, *, out=None)  # Physicist's
+torch.special.hermite_polynomial_he(input, n, *, out=None)  # Probabilist's
+```
+
+Hermite polynomials.
+
+### laguerre_polynomial_l
+
+```python
+torch.special.laguerre_polynomial_l(input, n, *, out=None)
+```
+
+Laguerre polynomial.
+
+### legendre_polynomial_p
+
+```python
+torch.special.legendre_polynomial_p(input, n, *, out=None)
+```
+
+Legendre polynomial.
+
+## Other Special Functions
+
+### expit
+
+```python
+torch.special.expit(input, *, out=None)
+```
+
+Computes the expit (logistic sigmoid) function: `expit(x) = 1/(1 + e^(-x))`.
+
+### logit
+
+```python
+torch.special.logit(input, eps=None, *, out=None)
+```
+
+Computes the logit function (inverse of expit).
+
+<ParamField path="input" type="Tensor">
+  The input tensor.
+</ParamField>
+
+<ParamField path="eps" type="float" default="None">
+  Epsilon for input clamping. If provided, input is clamped to [eps, 1-eps].
+</ParamField>
+
+### xlog1py / xlogy
+
+```python
+torch.special.xlog1py(input, other, *, out=None)
+torch.special.xlogy(input, other, *, out=None)
+```
+
+Computes `input * log1p(other)` and `input * log(other)` with special handling for zero inputs.
+
+### entr
+
+```python
+torch.special.entr(input, *, out=None)
+```
+
+Computes the entropy: `entr(x) = -x * ln(x)` for x > 0, 0 for x = 0, and -∞ for x < 0.
+
+### exp2 / expm1 / log1p
+
+```python
+torch.special.exp2(input, *, out=None)  # 2^x
+torch.special.expm1(input, *, out=None)  # e^x - 1
+torch.special.log1p(input, *, out=None)  # log(1 + x)
+```
+
+Exponential and logarithm variants.
+
+### sinc
+
+```python
+torch.special.sinc(input, *, out=None)
+```
+
+Computes the normalized sinc function: `sinc(x) = sin(πx)/(πx)` for x ≠ 0, 1 for x = 0.
+
+### zeta
+
+```python
+torch.special.zeta(input, other, *, out=None)
+```
+
+Computes the Hurwitz zeta function: `ζ(x, q) = Σ(k=0 to ∞) 1/(k+q)^x`.
+
+### airy_ai
+
+```python
+torch.special.airy_ai(input, *, out=None)
+```
+
+Airy function Ai(x).
+
+## Example Usage
+
+<CodeGroup>
+```python Gamma Functions
+import torch
+import torch.special as special
+
+# Gamma function logarithm
+x = torch.tensor([1.0, 2.0, 3.0, 4.0])
+gammaln_x = special.gammaln(x)
+print(f"ln(Γ(x)): {gammaln_x}")
+# Note: Γ(n) = (n-1)! for positive integers
+# So Γ(4) = 3! = 6, ln(6) ≈ 1.79
+
+# Digamma function
+digamma_x = special.digamma(x)
+print(f"ψ(x): {digamma_x}")
+
+# Polygamma (second derivative)
+polygamma_x = special.polygamma(2, x)
+print(f"ψ''(x): {polygamma_x}")
+
+# Incomplete gamma functions
+a = torch.tensor([2.0, 3.0])
+x = torch.tensor([1.0, 2.0])
+lower = special.gammainc(a, x)
+upper = special.gammaincc(a, x)
+print(f"Lower + Upper = {lower + upper}")  # Should be all 1's
+```
+
+```python Error Functions
+import torch
+import torch.special as special
+
+# Standard error function
+x = torch.linspace(-3, 3, 7)
+erf_x = special.erf(x)
+print(f"erf(x): {erf_x}")
+
+# Complementary error function
+erfc_x = special.erfc(x)
+print(f"erfc(x): {erfc_x}")
+print(f"erf + erfc: {erf_x + erfc_x}")  # Should be all 1's
+
+# Inverse error function
+p = torch.tensor([0.0, 0.5, 0.9])
+x_inv = special.erfinv(p)
+print(f"erfinv({p}): {x_inv}")
+print(f"Verification: {special.erf(x_inv)}")
+
+# Normal distribution CDF
+x = torch.tensor([-2.0, -1.0, 0.0, 1.0, 2.0])
+cdf = special.ndtr(x)
+print(f"Φ(x): {cdf}")
+
+# Quantile function (inverse CDF)
+quantiles = special.ndtri(torch.tensor([0.025, 0.5, 0.975]))
+print(f"Quantiles: {quantiles}")  # Approximately [-1.96, 0, 1.96]
+```
+
+```python Bessel Functions
+import torch
+import torch.special as special
+import math
+
+# Bessel functions of the first kind
+x = torch.linspace(0, 10, 11)
+j0 = special.bessel_j0(x)
+j1 = special.bessel_j1(x)
+print(f"J₀(x): {j0}")
+print(f"J₁(x): {j1}")
+
+# Modified Bessel functions
+x = torch.linspace(0, 5, 6)
+i0 = special.i0(x)
+i1 = special.i1(x)
+print(f"I₀(x): {i0}")
+print(f"I₁(x): {i1}")
+
+# Exponentially scaled versions (better for large x)
+x_large = torch.tensor([10.0, 20.0, 30.0])
+i0_scaled = special.i0e(x_large)
+print(f"e^(-|x|) * I₀(x): {i0_scaled}")
+```
+
+```python Orthogonal Polynomials
+import torch
+import torch.special as special
+
+# Chebyshev polynomials
+x = torch.tensor([0.5])
+for n in range(5):
+    t_n = special.chebyshev_polynomial_t(x, torch.tensor(n))
+    print(f"T_{n}({x.item()}) = {t_n.item():.4f}")
+
+# Hermite polynomials (physicist's)
+x = torch.linspace(-2, 2, 5)
+for n in range(4):
+    h_n = special.hermite_polynomial_h(x, torch.tensor(n))
+    print(f"H_{n}(x): {h_n}")
+
+# Legendre polynomials
+x = torch.linspace(-1, 1, 5)
+for n in range(4):
+    p_n = special.legendre_polynomial_p(x, torch.tensor(n))
+    print(f"P_{n}(x): {p_n}")
+```
+
+```python Sigmoid and Logit
+import torch
+import torch.special as special
+
+# Expit (sigmoid)
+x = torch.tensor([-2.0, -1.0, 0.0, 1.0, 2.0])
+sigmoid = special.expit(x)
+print(f"σ(x): {sigmoid}")
+
+# Logit (inverse sigmoid)
+probs = torch.tensor([0.1, 0.5, 0.9])
+logits = special.logit(probs)
+print(f"logit(p): {logits}")
+print(f"Roundtrip: {special.expit(logits)}")
+
+# Logit with clamping (safer for edge cases)
+probs_edge = torch.tensor([0.0, 0.5, 1.0])
+logits_safe = special.logit(probs_edge, eps=1e-6)
+print(f"Clamped logit: {logits_safe}")
+```
+
+```python Special Logarithms
+import torch
+import torch.special as special
+
+# xlogy: x * log(y) with special handling for x=0
+x = torch.tensor([0.0, 1.0, 2.0])
+y = torch.tensor([0.0, 1.0, 2.0])
+result = special.xlogy(x, y)
+print(f"xlogy: {result}")  # [0, 0, log(4)]
+
+# xlog1py: x * log(1 + y)
+result = special.xlog1py(x, y)
+print(f"xlog1py: {result}")
+
+# Entropy
+probs = torch.tensor([0.0, 0.5, 1.0])
+entropy = special.entr(probs)
+print(f"Entropy: {entropy}")  # [0, 0.3466, 0]
+
+# Accurate exp and log for small values
+small = torch.tensor([1e-10, 1e-5, 0.01])
+expm1 = special.expm1(small)  # More accurate than exp(x) - 1
+log1p = special.log1p(small)   # More accurate than log(1 + x)
+print(f"expm1(x): {expm1}")
+print(f"log1p(x): {log1p}")
+```
+</CodeGroup>
+
+## Use Cases
+
+<Accordion title="Statistical Distributions">
+  - `ndtr`, `ndtri`: Normal distribution CDF and quantiles
+  - `erf`, `erfc`: Related to normal distribution
+  - `gammaln`: Log-likelihood in gamma distributions
+  - `digamma`, `polygamma`: Maximum likelihood estimation
+</Accordion>
+
+<Accordion title="Signal Processing">
+  - Bessel functions: Solving wave equations, filters
+  - `sinc`: Sinc interpolation, digital signal processing
+  - Orthogonal polynomials: Spectral methods, approximation theory
+</Accordion>
+
+<Accordion title="Machine Learning">
+  - `expit`, `logit`: Logistic regression, binary classification
+  - `softmax`, `log_softmax`: Multi-class classification
+  - `xlogy`, `entr`: Information theory, KL divergence
+  - `gammaln`: Variational inference, Bayesian methods
+</Accordion>

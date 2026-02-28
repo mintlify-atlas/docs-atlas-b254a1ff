@@ -1,0 +1,554 @@
+---
+title: 'torch.nn.init'
+description: 'Weight initialization methods for neural networks'
+---
+
+## Overview
+
+The `torch.nn.init` module provides various methods for initializing neural network parameters. Proper initialization is crucial for:
+- Preventing vanishing/exploding gradients
+- Faster convergence during training
+- Better final model performance
+
+<Note>
+All initialization functions modify tensors in-place and return the modified tensor.
+</Note>
+
+## Uniform Distributions
+
+### uniform_
+
+```python
+torch.nn.init.uniform_(tensor, a=0.0, b=1.0, generator=None)
+```
+
+Fills the input Tensor with values drawn from the uniform distribution U(a, b).
+
+<ParamField path="tensor" type="Tensor" required>
+  An n-dimensional `torch.Tensor`
+</ParamField>
+
+<ParamField path="a" type="float" default="0.0">
+  Lower bound of the uniform distribution
+</ParamField>
+
+<ParamField path="b" type="float" default="1.0">
+  Upper bound of the uniform distribution
+</ParamField>
+
+<ParamField path="generator" type="torch.Generator" default="None">
+  PyTorch Generator to sample from
+</ParamField>
+
+**Example:**
+
+```python
+import torch.nn as nn
+
+w = torch.empty(3, 5)
+nn.init.uniform_(w, a=-0.1, b=0.1)
+```
+
+## Normal Distributions
+
+### normal_
+
+```python
+torch.nn.init.normal_(tensor, mean=0.0, std=1.0, generator=None)
+```
+
+Fills the input Tensor with values drawn from the normal distribution N(mean, std²).
+
+<ParamField path="tensor" type="Tensor" required>
+  An n-dimensional `torch.Tensor`
+</ParamField>
+
+<ParamField path="mean" type="float" default="0.0">
+  Mean of the normal distribution
+</ParamField>
+
+<ParamField path="std" type="float" default="1.0">
+  Standard deviation of the normal distribution
+</ParamField>
+
+<ParamField path="generator" type="torch.Generator" default="None">
+  PyTorch Generator to sample from
+</ParamField>
+
+**Example:**
+
+```python
+w = torch.empty(3, 5)
+nn.init.normal_(w, mean=0.0, std=0.01)
+```
+
+### trunc_normal_
+
+```python
+torch.nn.init.trunc_normal_(tensor, mean=0.0, std=1.0, a=-2.0, b=2.0, generator=None)
+```
+
+Fills the input Tensor with values drawn from a truncated normal distribution.
+
+<ParamField path="a" type="float" default="-2.0">
+  Minimum cutoff value
+</ParamField>
+
+<ParamField path="b" type="float" default="2.0">
+  Maximum cutoff value
+</ParamField>
+
+Values are drawn from N(mean, std²) with values outside [a, b] redrawn until they are within bounds.
+
+**Example:**
+
+```python
+w = torch.empty(3, 5)
+nn.init.trunc_normal_(w, mean=0.0, std=0.02, a=-0.04, b=0.04)
+```
+
+## Constant Initialization
+
+### constant_
+
+```python
+torch.nn.init.constant_(tensor, val)
+```
+
+Fills the input Tensor with the value `val`.
+
+<ParamField path="tensor" type="Tensor" required>
+  An n-dimensional `torch.Tensor`
+</ParamField>
+
+<ParamField path="val" type="float" required>
+  Value to fill the tensor with
+</ParamField>
+
+**Example:**
+
+```python
+w = torch.empty(3, 5)
+nn.init.constant_(w, 0.3)
+```
+
+### ones_
+
+```python
+torch.nn.init.ones_(tensor)
+```
+
+Fills the input Tensor with the scalar value `1`.
+
+**Example:**
+
+```python
+w = torch.empty(3, 5)
+nn.init.ones_(w)
+```
+
+### zeros_
+
+```python
+torch.nn.init.zeros_(tensor)
+```
+
+Fills the input Tensor with the scalar value `0`.
+
+**Example:**
+
+```python
+w = torch.empty(3, 5)
+nn.init.zeros_(w)
+```
+
+### eye_
+
+```python
+torch.nn.init.eye_(tensor)
+```
+
+Fills the 2-dimensional input Tensor with the identity matrix.
+
+<Warning>
+Tensor must be 2-dimensional.
+</Warning>
+
+**Example:**
+
+```python
+w = torch.empty(3, 3)
+nn.init.eye_(w)
+```
+
+## Xavier Initialization
+
+Xavier initialization (also known as Glorot initialization) helps maintain the variance of activations and gradients across layers.
+
+### xavier_uniform_
+
+```python
+torch.nn.init.xavier_uniform_(tensor, gain=1.0, generator=None)
+```
+
+Fills the input Tensor with values according to the method described in "Understanding the difficulty of training deep feedforward neural networks" - Glorot, X. & Bengio, Y. (2010).
+
+<ParamField path="tensor" type="Tensor" required>
+  An n-dimensional `torch.Tensor`
+</ParamField>
+
+<ParamField path="gain" type="float" default="1.0">
+  Optional scaling factor
+</ParamField>
+
+**Formula:**
+
+Values are sampled from U(-a, a) where:
+```
+a = gain × sqrt(6 / (fan_in + fan_out))
+```
+
+**Example:**
+
+```python
+linear = nn.Linear(20, 10)
+nn.init.xavier_uniform_(linear.weight)
+```
+
+### xavier_normal_
+
+```python
+torch.nn.init.xavier_normal_(tensor, gain=1.0, generator=None)
+```
+
+Fills the input Tensor with values according to Xavier initialization using a normal distribution.
+
+**Formula:**
+
+Values are sampled from N(0, std²) where:
+```
+std = gain × sqrt(2 / (fan_in + fan_out))
+```
+
+**Example:**
+
+```python
+linear = nn.Linear(20, 10)
+nn.init.xavier_normal_(linear.weight)
+```
+
+## Kaiming Initialization
+
+Kaiming initialization (also known as He initialization) is designed for layers with ReLU activations.
+
+### kaiming_uniform_
+
+```python
+torch.nn.init.kaiming_uniform_(tensor, a=0, mode='fan_in', nonlinearity='leaky_relu', generator=None)
+```
+
+Fills the input Tensor with values according to the method described in "Delving deep into rectifiers: Surpassing human-level performance on ImageNet classification" - He, K. et al. (2015).
+
+<ParamField path="tensor" type="Tensor" required>
+  An n-dimensional `torch.Tensor`
+</ParamField>
+
+<ParamField path="a" type="float" default="0">
+  Negative slope of the rectifier used after this layer (only used with `'leaky_relu'`)
+</ParamField>
+
+<ParamField path="mode" type="str" default="'fan_in'">
+  Either `'fan_in'` (default) or `'fan_out'`. `'fan_in'` preserves magnitude of variance in forward pass. `'fan_out'` preserves magnitudes in backward pass.
+</ParamField>
+
+<ParamField path="nonlinearity" type="str" default="'leaky_relu'">
+  Name of non-linear function: `'relu'`, `'leaky_relu'`, `'tanh'`, etc.
+</ParamField>
+
+**Formula:**
+
+Values are sampled from U(-bound, bound) where:
+```
+bound = gain × sqrt(3 / fan_mode)
+```
+
+**Example:**
+
+```python
+conv = nn.Conv2d(3, 64, kernel_size=3)
+nn.init.kaiming_uniform_(conv.weight, mode='fan_in', nonlinearity='relu')
+```
+
+### kaiming_normal_
+
+```python
+torch.nn.init.kaiming_normal_(tensor, a=0, mode='fan_in', nonlinearity='leaky_relu', generator=None)
+```
+
+Fills the input Tensor with values according to Kaiming initialization using a normal distribution.
+
+**Formula:**
+
+Values are sampled from N(0, std²) where:
+```
+std = gain / sqrt(fan_mode)
+```
+
+**Example:**
+
+```python
+conv = nn.Conv2d(3, 64, kernel_size=3)
+nn.init.kaiming_normal_(conv.weight, mode='fan_out', nonlinearity='relu')
+```
+
+## Special Initializations
+
+### orthogonal_
+
+```python
+torch.nn.init.orthogonal_(tensor, gain=1, generator=None)
+```
+
+Fills the input Tensor with a (semi) orthogonal matrix, as described in "Exact solutions to the nonlinear dynamics of learning in deep linear neural networks" - Saxe, A. et al. (2013).
+
+<ParamField path="gain" type="float" default="1">
+  Optional scaling factor
+</ParamField>
+
+**Example:**
+
+```python
+w = torch.empty(3, 5)
+nn.init.orthogonal_(w)
+```
+
+### sparse_
+
+```python
+torch.nn.init.sparse_(tensor, sparsity, std=0.01, generator=None)
+```
+
+Fills the 2D input Tensor as a sparse matrix, where non-zero elements are drawn from a normal distribution.
+
+<ParamField path="tensor" type="Tensor" required>
+  A 2-dimensional `torch.Tensor`
+</ParamField>
+
+<ParamField path="sparsity" type="float" required>
+  Fraction of elements in each column to be set to zero
+</ParamField>
+
+<ParamField path="std" type="float" default="0.01">
+  Standard deviation of the normal distribution for non-zero values
+</ParamField>
+
+**Example:**
+
+```python
+w = torch.empty(3, 5)
+nn.init.sparse_(w, sparsity=0.1)
+```
+
+### dirac_
+
+```python
+torch.nn.init.dirac_(tensor, groups=1)
+```
+
+Fills the {3, 4, 5}-dimensional input Tensor with the Dirac delta function.
+
+<ParamField path="groups" type="int" default="1">
+  Number of groups for grouped convolutions
+</ParamField>
+
+Preserves the identity of inputs in Convolutional layers, where possible.
+
+**Example:**
+
+```python
+conv = nn.Conv2d(3, 3, 3)
+nn.init.dirac_(conv.weight)
+```
+
+## Calculate Gain
+
+### calculate_gain
+
+```python
+torch.nn.init.calculate_gain(nonlinearity, param=None)
+```
+
+Returns the recommended gain value for the given nonlinearity function.
+
+<ParamField path="nonlinearity" type="str" required>
+  Name of the non-linear function: `'linear'`, `'conv1d'`, `'conv2d'`, `'conv3d'`, `'sigmoid'`, `'tanh'`, `'relu'`, `'leaky_relu'`, `'selu'`
+</ParamField>
+
+<ParamField path="param" type="float" default="None">
+  Optional parameter for the non-linear function (e.g., negative_slope for leaky_relu)
+</ParamField>
+
+**Gain Values:**
+
+| Nonlinearity | Gain |
+|--------------|------|
+| Linear/Identity/Conv | 1 |
+| Sigmoid | 1 |
+| Tanh | 5/3 |
+| ReLU | √2 |
+| Leaky ReLU | √(2/(1+negative_slope²)) |
+| SELU | 3/4 |
+
+**Example:**
+
+```python
+gain = nn.init.calculate_gain('relu')
+print(gain)  # 1.4142135623730951 (√2)
+
+gain = nn.init.calculate_gain('leaky_relu', 0.2)
+print(gain)  # 1.3867504905630728
+```
+
+## Usage Patterns
+
+### Custom Module Initialization
+
+```python
+class MyModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(3, 64, 3)
+        self.conv2 = nn.Conv2d(64, 128, 3)
+        self.fc = nn.Linear(128, 10)
+        
+        # Initialize weights
+        self._initialize_weights()
+    
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                nn.init.constant_(m.bias, 0)
+```
+
+### Layer-specific Initialization
+
+```python
+# For ReLU activation layers
+conv = nn.Conv2d(3, 64, 3)
+nn.init.kaiming_normal_(conv.weight, mode='fan_out', nonlinearity='relu')
+
+# For Tanh activation layers
+linear = nn.Linear(100, 50)
+gain = nn.init.calculate_gain('tanh')
+nn.init.xavier_normal_(linear.weight, gain=gain)
+
+# Bias initialization
+nn.init.constant_(conv.bias, 0)
+```
+
+### Conditional Initialization
+
+```python
+def init_weights(m):
+    if isinstance(m, nn.Linear):
+        nn.init.xavier_uniform_(m.weight)
+        m.bias.data.fill_(0.01)
+    elif isinstance(m, nn.Conv2d):
+        nn.init.kaiming_normal_(m.weight, mode='fan_out')
+        if m.bias is not None:
+            nn.init.constant_(m.bias, 0)
+
+model = MyModel()
+model.apply(init_weights)
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Match initialization to activation function">
+    Use Kaiming initialization for ReLU-based networks and Xavier for tanh/sigmoid:
+    
+    ```python
+    # For ReLU networks
+    nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
+    
+    # For Tanh networks
+    nn.init.xavier_normal_(layer.weight, gain=nn.init.calculate_gain('tanh'))
+    ```
+  </Accordion>
+  
+  <Accordion title="Initialize biases to zero or small constants">
+    ```python
+    # Zero initialization (common)
+    nn.init.constant_(layer.bias, 0)
+    
+    # Small positive value for ReLU to avoid dead neurons
+    nn.init.constant_(layer.bias, 0.01)
+    ```
+  </Accordion>
+  
+  <Accordion title="Use fan_out for convolutional layers">
+    ```python
+    # Better for conv layers in modern architectures
+    nn.init.kaiming_normal_(conv.weight, mode='fan_out', nonlinearity='relu')
+    ```
+  </Accordion>
+  
+  <Accordion title="Consider layer type and architecture">
+    Different initialization strategies work better for different architectures:
+    - **ResNets**: Kaiming initialization with fan_out
+    - **Transformers**: Xavier uniform or normal
+    - **GANs**: Normal with small std (0.02) or orthogonal
+  </Accordion>
+</AccordionGroup>
+
+## Common Recipes
+
+<Tabs>
+  <Tab title="ResNet-style">
+    ```python
+    def init_resnet(m):
+        if isinstance(m, nn.Conv2d):
+            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+            nn.init.constant_(m.weight, 1)
+            nn.init.constant_(m.bias, 0)
+    
+    model.apply(init_resnet)
+    ```
+  </Tab>
+  
+  <Tab title="Transformer-style">
+    ```python
+    def init_transformer(m):
+        if isinstance(m, nn.Linear):
+            nn.init.xavier_uniform_(m.weight)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.Embedding):
+            nn.init.normal_(m.weight, mean=0, std=0.02)
+    
+    model.apply(init_transformer)
+    ```
+  </Tab>
+  
+  <Tab title="GAN-style">
+    ```python
+    def init_gan(m):
+        classname = m.__class__.__name__
+        if classname.find('Conv') != -1:
+            nn.init.normal_(m.weight.data, 0.0, 0.02)
+        elif classname.find('BatchNorm') != -1:
+            nn.init.normal_(m.weight.data, 1.0, 0.02)
+            nn.init.constant_(m.bias.data, 0)
+    
+    generator.apply(init_gan)
+    discriminator.apply(init_gan)
+    ```
+  </Tab>
+</Tabs>

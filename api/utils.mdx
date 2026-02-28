@@ -1,0 +1,264 @@
+---
+title: 'torch.utils'
+description: 'Utility functions and helpers for PyTorch'
+---
+
+# Utility Functions
+
+The `torch.utils` package provides various utility functions and helpers for PyTorch development.
+
+## Data Loading Utilities
+
+### DataLoader
+
+```python
+torch.utils.data.DataLoader(
+    dataset,
+    batch_size=1,
+    shuffle=False,
+    sampler=None,
+    batch_sampler=None,
+    num_workers=0,
+    collate_fn=None,
+    pin_memory=False,
+    drop_last=False,
+    timeout=0,
+    worker_init_fn=None,
+    multiprocessing_context=None,
+    generator=None,
+    prefetch_factor=2,
+    persistent_workers=False
+)
+```
+
+Data loader that combines a dataset and a sampler, and provides an iterable over the given dataset.
+
+<ParamField path="dataset" type="Dataset">
+  Dataset from which to load the data.
+</ParamField>
+
+<ParamField path="batch_size" type="int" default="1">
+  How many samples per batch to load.
+</ParamField>
+
+<ParamField path="shuffle" type="bool" default="False">
+  Set to `True` to have the data reshuffled at every epoch.
+</ParamField>
+
+<ParamField path="num_workers" type="int" default="0">
+  How many subprocesses to use for data loading. `0` means that the data will be loaded in the main process.
+</ParamField>
+
+<ParamField path="pin_memory" type="bool" default="False">
+  If `True`, the data loader will copy Tensors into CUDA pinned memory before returning them.
+</ParamField>
+
+## Checkpoint Utilities
+
+### checkpoint
+
+```python
+torch.utils.checkpoint.checkpoint(
+    function,
+    *args,
+    use_reentrant=True,
+    **kwargs
+)
+```
+
+Checkpoint a model or part of the model. Checkpointing works by trading compute for memory. Rather than storing all intermediate activations of the entire computation graph for computing backward, the checkpointed part does not save intermediate activations, and instead recomputes them in backward pass.
+
+<ParamField path="function" type="callable">
+  Describes what to run in the forward pass of the model or part of the model.
+</ParamField>
+
+<ParamField path="use_reentrant" type="bool" default="True">
+  Specify whether to use the activation checkpointing or checkpoint variant.
+</ParamField>
+
+<ResponseField name="Returns" type="Any">
+  Output of running `function` on `*args`
+</ResponseField>
+
+## Model Utilities
+
+### Module Utilities
+
+```python
+torch.utils.set_module(obj, name)
+```
+
+Set the `__module__` attribute on a given object.
+
+### Hooks
+
+```python
+torch.utils.hooks.RemovableHandle
+```
+
+A handle which provides the capability to remove a hook.
+
+## Bottleneck
+
+```python
+torch.utils.bottleneck.main()
+```
+
+Runs the bottleneck analysis tool. This is a tool that can be used to identify performance bottlenecks in your code.
+
+## TensorBoard
+
+### SummaryWriter
+
+```python
+torch.utils.tensorboard.SummaryWriter(
+    log_dir=None,
+    comment='',
+    purge_step=None,
+    max_queue=10,
+    flush_secs=120,
+    filename_suffix=''
+)
+```
+
+Writes entries directly to event files in the log_dir to be consumed by TensorBoard.
+
+<ParamField path="log_dir" type="str" default="None">
+  Save directory location. Default is runs/**CURRENT_DATETIME_HOSTNAME**.
+</ParamField>
+
+<ParamField path="comment" type="str" default="''">
+  Comment log_dir suffix appended to the default `log_dir`.
+</ParamField>
+
+<ParamField path="flush_secs" type="int" default="120">
+  How often, in seconds, to flush the pending events to disk.
+</ParamField>
+
+### Logging Methods
+
+```python
+add_scalar(tag, scalar_value, global_step=None, walltime=None)
+```
+
+Add scalar data to summary.
+
+```python
+add_scalars(main_tag, tag_scalar_dict, global_step=None, walltime=None)
+```
+
+Adds many scalar data to summary.
+
+```python
+add_histogram(tag, values, global_step=None, bins='tensorflow', walltime=None)
+```
+
+Add histogram to summary.
+
+```python
+add_image(tag, img_tensor, global_step=None, walltime=None, dataformats='CHW')
+```
+
+Add image data to summary.
+
+## C++ Extension
+
+```python
+torch.utils.cpp_extension.load(
+    name,
+    sources,
+    extra_cflags=None,
+    extra_cuda_cflags=None,
+    extra_ldflags=None,
+    extra_include_paths=None,
+    build_directory=None,
+    verbose=False,
+    with_cuda=None,
+    is_python_module=True,
+    is_standalone=False
+)
+```
+
+Loads a PyTorch C++ extension just-in-time (JIT).
+
+<ParamField path="name" type="str">
+  The name of the extension to build.
+</ParamField>
+
+<ParamField path="sources" type="list[str]">
+  A list of relative or absolute paths to C++ source files.
+</ParamField>
+
+<ParamField path="verbose" type="bool" default="False">
+  If `True`, turns on verbose logging of the build.
+</ParamField>
+
+<ParamField path="with_cuda" type="bool" default="None">
+  Determines whether CUDA headers and libraries are added to the build.
+</ParamField>
+
+## Example Usage
+
+<CodeGroup>
+```python DataLoader Example
+import torch
+from torch.utils.data import DataLoader, TensorDataset
+
+# Create a simple dataset
+data = torch.randn(100, 10)
+labels = torch.randint(0, 2, (100,))
+dataset = TensorDataset(data, labels)
+
+# Create a DataLoader
+loader = DataLoader(
+    dataset,
+    batch_size=16,
+    shuffle=True,
+    num_workers=2
+)
+
+# Iterate through batches
+for batch_data, batch_labels in loader:
+    print(batch_data.shape, batch_labels.shape)
+```
+
+```python Checkpoint Example
+import torch
+import torch.nn as nn
+from torch.utils.checkpoint import checkpoint
+
+class MyModule(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.Linear(100, 100)
+        self.layer2 = nn.Linear(100, 100)
+    
+    def forward(self, x):
+        # Use checkpointing to save memory
+        x = checkpoint(self.layer1, x)
+        x = checkpoint(self.layer2, x)
+        return x
+
+model = MyModule()
+x = torch.randn(10, 100, requires_grad=True)
+output = model(x)
+```
+
+```python TensorBoard Example
+from torch.utils.tensorboard import SummaryWriter
+import torch
+
+writer = SummaryWriter('runs/experiment_1')
+
+# Log scalar values
+for i in range(100):
+    writer.add_scalar('Loss/train', torch.rand(1), i)
+    writer.add_scalar('Accuracy/train', torch.rand(1), i)
+
+# Log histogram
+weights = torch.randn(1000)
+writer.add_histogram('Weights', weights, 0)
+
+writer.close()
+```
+</CodeGroup>

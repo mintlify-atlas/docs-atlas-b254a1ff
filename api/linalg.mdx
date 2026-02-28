@@ -1,0 +1,470 @@
+---
+title: 'torch.linalg'
+description: 'Linear algebra operations'
+---
+
+# Linear Algebra
+
+The `torch.linalg` module provides linear algebra operations including matrix decompositions, solvers, and eigenvalue computations.
+
+## Matrix Properties
+
+### norm
+
+```python
+torch.linalg.norm(input, ord=None, dim=None, keepdim=False, *, out=None, dtype=None)
+```
+
+Computes the matrix or vector norm.
+
+<ParamField path="input" type="Tensor">
+  The input tensor.
+</ParamField>
+
+<ParamField path="ord" type="int, float, or str" default="None">
+  The order of norm. Options: `None`, `'fro'`, `'nuc'`, `inf`, `-inf`, or any int/float.
+</ParamField>
+
+<ParamField path="dim" type="int or Tuple[int]" default="None">
+  Dimensions to compute the norm over.
+</ParamField>
+
+<ParamField path="keepdim" type="bool" default="False">
+  Whether to keep the reduced dimensions.
+</ParamField>
+
+### det
+
+```python
+torch.linalg.det(A, *, out=None)
+```
+
+Computes the determinant of a square matrix.
+
+<ParamField path="A" type="Tensor">
+  Tensor of shape `(*, n, n)` where `*` is zero or more batch dimensions.
+</ParamField>
+
+<ResponseField name="Returns" type="Tensor">
+  The determinant
+</ResponseField>
+
+### slogdet
+
+```python
+torch.linalg.slogdet(A, *, out=None)
+```
+
+Computes the sign and natural logarithm of the absolute value of the determinant.
+
+<ResponseField name="Returns" type="namedtuple(sign, logabsdet)">
+  The sign and log absolute value of the determinant
+</ResponseField>
+
+### matrix_rank
+
+```python
+torch.linalg.matrix_rank(A, *, atol=None, rtol=None, hermitian=False, out=None)
+```
+
+Computes the numerical rank of a matrix.
+
+<ParamField path="A" type="Tensor">
+  Input matrix of shape `(*, m, n)`.
+</ParamField>
+
+<ParamField path="atol" type="float" default="None">
+  Absolute tolerance value.
+</ParamField>
+
+<ParamField path="rtol" type="float" default="None">
+  Relative tolerance value.
+</ParamField>
+
+<ParamField path="hermitian" type="bool" default="False">
+  Whether matrix is Hermitian/symmetric.
+</ParamField>
+
+## Matrix Decompositions
+
+### cholesky
+
+```python
+torch.linalg.cholesky(A, *, upper=False, out=None)
+```
+
+Computes the Cholesky decomposition of a Hermitian positive-definite matrix.
+
+<ParamField path="A" type="Tensor">
+  Hermitian positive-definite matrix of shape `(*, n, n)`.
+</ParamField>
+
+<ParamField path="upper" type="bool" default="False">
+  Whether to return upper triangular matrix. If False, returns lower triangular.
+</ParamField>
+
+<ResponseField name="Returns" type="Tensor">
+  Lower (or upper) triangular matrix `L` such that `A = L @ L.T` (or `A = U.T @ U`)
+</ResponseField>
+
+### qr
+
+```python
+torch.linalg.qr(A, mode='reduced', *, out=None)
+```
+
+Computes the QR decomposition of a matrix.
+
+<ParamField path="A" type="Tensor">
+  Matrix of shape `(*, m, n)`.
+</ParamField>
+
+<ParamField path="mode" type="str" default="'reduced'">
+  One of `'reduced'`, `'complete'`, or `'r'`.
+</ParamField>
+
+<ResponseField name="Returns" type="namedtuple(Q, R)">
+  Orthogonal/unitary matrix Q and upper triangular matrix R
+</ResponseField>
+
+### svd
+
+```python
+torch.linalg.svd(A, full_matrices=True, *, driver=None, out=None)
+```
+
+Computes the singular value decomposition (SVD) of a matrix.
+
+<ParamField path="A" type="Tensor">
+  Matrix of shape `(*, m, n)`.
+</ParamField>
+
+<ParamField path="full_matrices" type="bool" default="True">
+  Whether to compute full or reduced SVD.
+</ParamField>
+
+<ResponseField name="Returns" type="namedtuple(U, S, Vh)">
+  - U: Left singular vectors of shape `(*, m, k)`
+  - S: Singular values of shape `(*, k)`
+  - Vh: Right singular vectors (conjugate transposed) of shape `(*, k, n)`
+  
+  where k = min(m, n)
+</ResponseField>
+
+### svdvals
+
+```python
+torch.linalg.svdvals(A, *, driver=None, out=None)
+```
+
+Computes only the singular values of a matrix.
+
+### eig
+
+```python
+torch.linalg.eig(A, *, out=None)
+```
+
+Computes the eigenvalue decomposition of a square matrix.
+
+<ParamField path="A" type="Tensor">
+  Square matrix of shape `(*, n, n)`.
+</ParamField>
+
+<ResponseField name="Returns" type="namedtuple(eigenvalues, eigenvectors)">
+  Complex-valued eigenvalues and eigenvectors
+</ResponseField>
+
+### eigvals
+
+```python
+torch.linalg.eigvals(A, *, out=None)
+```
+
+Computes only the eigenvalues of a square matrix.
+
+### eigh
+
+```python
+torch.linalg.eigh(A, UPLO='L', *, out=None)
+```
+
+Computes the eigenvalue decomposition of a Hermitian or symmetric matrix.
+
+<ParamField path="A" type="Tensor">
+  Hermitian or symmetric matrix of shape `(*, n, n)`.
+</ParamField>
+
+<ParamField path="UPLO" type="str" default="'L'">
+  Whether to use upper (`'U'`) or lower (`'L'`) triangular part.
+</ParamField>
+
+<ResponseField name="Returns" type="namedtuple(eigenvalues, eigenvectors)">
+  Real eigenvalues (sorted in ascending order) and corresponding eigenvectors
+</ResponseField>
+
+### eigvalsh
+
+```python
+torch.linalg.eigvalsh(A, UPLO='L', *, out=None)
+```
+
+Computes only the eigenvalues of a Hermitian or symmetric matrix.
+
+## Matrix Inverse and Solvers
+
+### inv
+
+```python
+torch.linalg.inv(A, *, out=None)
+```
+
+Computes the inverse of a square matrix.
+
+<ParamField path="A" type="Tensor">
+  Invertible matrix of shape `(*, n, n)`.
+</ParamField>
+
+<ResponseField name="Returns" type="Tensor">
+  The inverse matrix
+</ResponseField>
+
+### pinv
+
+```python
+torch.linalg.pinv(A, *, atol=None, rtol=None, hermitian=False, out=None)
+```
+
+Computes the pseudoinverse (Moore-Penrose inverse) of a matrix.
+
+<ParamField path="A" type="Tensor">
+  Matrix of shape `(*, m, n)`.
+</ParamField>
+
+<ParamField path="hermitian" type="bool" default="False">
+  Whether matrix is Hermitian/symmetric.
+</ParamField>
+
+### solve
+
+```python
+torch.linalg.solve(A, B, *, left=True, out=None)
+```
+
+Computes the solution of a system of linear equations `AX = B`.
+
+<ParamField path="A" type="Tensor">
+  Square coefficient matrix of shape `(*, n, n)`.
+</ParamField>
+
+<ParamField path="B" type="Tensor">
+  Right-hand side matrix of shape `(*, n, k)`.
+</ParamField>
+
+<ParamField path="left" type="bool" default="True">
+  Whether to solve `AX = B` (True) or `XA = B` (False).
+</ParamField>
+
+<ResponseField name="Returns" type="Tensor">
+  Solution tensor X
+</ResponseField>
+
+### lstsq
+
+```python
+torch.linalg.lstsq(A, B, rcond=None, *, driver=None)
+```
+
+Computes the least-squares solution to a linear system.
+
+<ParamField path="A" type="Tensor">
+  Coefficient matrix of shape `(*, m, n)`.
+</ParamField>
+
+<ParamField path="B" type="Tensor">
+  Right-hand side of shape `(*, m, k)`.
+</ParamField>
+
+<ResponseField name="Returns" type="namedtuple(solution, residuals, rank, singular_values)">
+  Least-squares solution and additional information
+</ResponseField>
+
+## Matrix Operations
+
+### matrix_power
+
+```python
+torch.linalg.matrix_power(A, n, *, out=None)
+```
+
+Computes the n-th power of a square matrix.
+
+<ParamField path="A" type="Tensor">
+  Square matrix of shape `(*, m, m)`.
+</ParamField>
+
+<ParamField path="n" type="int">
+  The exponent (can be negative).
+</ParamField>
+
+### cross
+
+```python
+torch.linalg.cross(input, other, *, dim=-1, out=None)
+```
+
+Computes the cross product of two 3D vectors.
+
+<ParamField path="input" type="Tensor">
+  First input tensor.
+</ParamField>
+
+<ParamField path="other" type="Tensor">
+  Second input tensor.
+</ParamField>
+
+<ParamField path="dim" type="int" default="-1">
+  Dimension along which to compute the cross product.
+</ParamField>
+
+## Example Usage
+
+<CodeGroup>
+```python Matrix Decompositions
+import torch
+
+# Cholesky decomposition
+A = torch.randn(3, 3)
+A = A @ A.T  # Make positive definite
+L = torch.linalg.cholesky(A)
+print(f"Reconstruction error: {torch.norm(A - L @ L.T)}")
+
+# QR decomposition
+B = torch.randn(4, 3)
+Q, R = torch.linalg.qr(B)
+print(f"Q is orthogonal: {torch.allclose(Q.T @ Q, torch.eye(3))}")
+print(f"Reconstruction: {torch.allclose(B, Q @ R)}")
+
+# SVD
+U, S, Vh = torch.linalg.svd(B, full_matrices=False)
+print(f"Singular values: {S}")
+B_reconstructed = U @ torch.diag(S) @ Vh
+print(f"SVD reconstruction error: {torch.norm(B - B_reconstructed)}")
+```
+
+```python Solving Linear Systems
+import torch
+
+# Solve AX = B
+A = torch.randn(3, 3)
+B = torch.randn(3, 2)
+
+# Direct solve
+X = torch.linalg.solve(A, B)
+print(f"Solution shape: {X.shape}")
+print(f"Residual: {torch.norm(A @ X - B)}")
+
+# Least squares (overdetermined system)
+A_over = torch.randn(5, 3)  # More equations than unknowns
+B_over = torch.randn(5, 1)
+
+result = torch.linalg.lstsq(A_over, B_over)
+X_ls = result.solution
+print(f"Least squares solution shape: {X_ls.shape}")
+print(f"Residual norm: {torch.norm(A_over @ X_ls - B_over)}")
+```
+
+```python Eigenvalues and Eigenvectors
+import torch
+
+# Symmetric matrix eigenvalues
+A_sym = torch.randn(4, 4)
+A_sym = (A_sym + A_sym.T) / 2  # Make symmetric
+
+eigenvalues, eigenvectors = torch.linalg.eigh(A_sym)
+print(f"Eigenvalues (sorted): {eigenvalues}")
+
+# Verify eigenvector equation: Av = λv
+for i in range(4):
+    v = eigenvectors[:, i]
+    lam = eigenvalues[i]
+    error = torch.norm(A_sym @ v - lam * v)
+    print(f"Eigenvector {i} error: {error:.6f}")
+
+# General matrix eigenvalues
+B = torch.randn(3, 3)
+eig_vals = torch.linalg.eigvals(B)
+print(f"Complex eigenvalues: {eig_vals}")
+```
+
+```python Matrix Norms and Properties
+import torch
+
+# Different matrix norms
+A = torch.randn(3, 4)
+
+frobenius_norm = torch.linalg.norm(A, 'fro')
+spectral_norm = torch.linalg.norm(A, 2)
+inf_norm = torch.linalg.norm(A, float('inf'))
+
+print(f"Frobenius norm: {frobenius_norm}")
+print(f"Spectral norm: {spectral_norm}")
+print(f"Infinity norm: {inf_norm}")
+
+# Matrix rank
+rank = torch.linalg.matrix_rank(A)
+print(f"Matrix rank: {rank}")
+
+# Determinant
+B = torch.randn(3, 3)
+det = torch.linalg.det(B)
+sign, logabsdet = torch.linalg.slogdet(B)
+print(f"Determinant: {det}")
+print(f"Sign: {sign}, Log|det|: {logabsdet}")
+```
+
+```python Batch Operations
+import torch
+
+# Batch of matrices
+batch_size = 5
+A_batch = torch.randn(batch_size, 3, 3)
+B_batch = torch.randn(batch_size, 3, 2)
+
+# Solve for each matrix in batch
+X_batch = torch.linalg.solve(A_batch, B_batch)
+print(f"Batch solution shape: {X_batch.shape}")
+
+# Verify solutions
+for i in range(batch_size):
+    residual = torch.norm(A_batch[i] @ X_batch[i] - B_batch[i])
+    print(f"Batch {i} residual: {residual:.6f}")
+
+# Batch SVD
+U, S, Vh = torch.linalg.svd(A_batch)
+print(f"Batch singular values shape: {S.shape}")
+```
+</CodeGroup>
+
+## Best Practices
+
+<Accordion title="Numerical Stability">
+  - Use `torch.linalg.solve` instead of computing inverses explicitly
+  - For ill-conditioned systems, consider using `lstsq` or regularization
+  - Use `slogdet` instead of `det` for large determinants to avoid overflow
+  - Check condition numbers before solving linear systems
+</Accordion>
+
+<Accordion title="Performance Optimization">
+  - Batch operations are more efficient than loops
+  - For symmetric/Hermitian matrices, use `eigh` instead of `eig`
+  - Use `svdvals` if you only need singular values, not vectors
+  - Consider using lower precision (float32) if accuracy allows
+</Accordion>
+
+<Accordion title="Common Pitfalls">
+  - SVD returns Vh (conjugate transpose), not V
+  - Eigenvalues from `eig` are not sorted; use `eigh` for sorted eigenvalues
+  - `matrix_power` with negative exponents requires invertible matrices
+  - Always check for singular matrices before computing inverses
+</Accordion>

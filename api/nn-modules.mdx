@@ -1,0 +1,500 @@
+---
+title: 'torch.nn Modules'
+description: 'Neural network layers and building blocks'
+---
+
+## Linear Layers
+
+Linear layers apply affine transformations to input data.
+
+### Linear
+
+```python
+torch.nn.Linear(in_features, out_features, bias=True, device=None, dtype=None)
+```
+
+Applies an affine linear transformation: `y = xA^T + b`
+
+<ParamField path="in_features" type="int" required>
+  Size of each input sample
+</ParamField>
+
+<ParamField path="out_features" type="int" required>
+  Size of each output sample
+</ParamField>
+
+<ParamField path="bias" type="bool" default="True">
+  If `False`, the layer will not learn an additive bias
+</ParamField>
+
+<ParamField path="device" type="torch.device" default="None">
+  Device to create parameters on
+</ParamField>
+
+<ParamField path="dtype" type="torch.dtype" default="None">
+  Data type for parameters
+</ParamField>
+
+**Shape:**
+- Input: `(*, H_in)` where `H_in = in_features`
+- Output: `(*, H_out)` where `H_out = out_features`
+
+**Attributes:**
+- `weight`: Learnable weights of shape `(out_features, in_features)`
+- `bias`: Learnable bias of shape `(out_features)` if `bias=True`
+
+**Example:**
+
+```python
+m = nn.Linear(20, 30)
+input = torch.randn(128, 20)
+output = m(input)
+print(output.size())  # torch.Size([128, 30])
+```
+
+### Bilinear
+
+```python
+torch.nn.Bilinear(in1_features, in2_features, out_features, bias=True, device=None, dtype=None)
+```
+
+Applies a bilinear transformation: `y = x1^T A x2 + b`
+
+<ParamField path="in1_features" type="int" required>
+  Size of each first input sample
+</ParamField>
+
+<ParamField path="in2_features" type="int" required>
+  Size of each second input sample
+</ParamField>
+
+<ParamField path="out_features" type="int" required>
+  Size of each output sample
+</ParamField>
+
+<ParamField path="bias" type="bool" default="True">
+  If `False`, the layer will not learn an additive bias
+</ParamField>
+
+**Example:**
+
+```python
+m = nn.Bilinear(20, 30, 40)
+input1 = torch.randn(128, 20)
+input2 = torch.randn(128, 30)
+output = m(input1, input2)
+print(output.size())  # torch.Size([128, 40])
+```
+
+### Identity
+
+```python
+torch.nn.Identity(*args, **kwargs)
+```
+
+A placeholder identity operator that returns input unchanged.
+
+**Example:**
+
+```python
+m = nn.Identity()
+input = torch.randn(128, 20)
+output = m(input)
+# output is identical to input
+```
+
+## Convolutional Layers
+
+Convolutional layers apply convolution operations over input signals.
+
+### Conv2d
+
+```python
+torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride=1, 
+                padding=0, dilation=1, groups=1, bias=True, 
+                padding_mode='zeros', device=None, dtype=None)
+```
+
+Applies a 2D convolution over an input signal.
+
+<ParamField path="in_channels" type="int" required>
+  Number of channels in the input image
+</ParamField>
+
+<ParamField path="out_channels" type="int" required>
+  Number of channels produced by the convolution
+</ParamField>
+
+<ParamField path="kernel_size" type="int | tuple" required>
+  Size of the convolving kernel
+</ParamField>
+
+<ParamField path="stride" type="int | tuple" default="1">
+  Stride of the convolution
+</ParamField>
+
+<ParamField path="padding" type="int | tuple | str" default="0">
+  Padding added to both sides of the input. Can be `'valid'`, `'same'`, or an integer
+</ParamField>
+
+<ParamField path="dilation" type="int | tuple" default="1">
+  Spacing between kernel elements
+</ParamField>
+
+<ParamField path="groups" type="int" default="1">
+  Number of blocked connections from input channels to output channels
+</ParamField>
+
+<ParamField path="bias" type="bool" default="True">
+  If `True`, adds a learnable bias to the output
+</ParamField>
+
+<ParamField path="padding_mode" type="str" default="'zeros'">
+  Padding mode: `'zeros'`, `'reflect'`, `'replicate'`, or `'circular'`
+</ParamField>
+
+**Shape:**
+- Input: `(N, C_in, H_in, W_in)`
+- Output: `(N, C_out, H_out, W_out)`
+
+**Example:**
+
+```python
+# With square kernels and equal stride
+m = nn.Conv2d(16, 33, 3, stride=2)
+input = torch.randn(20, 16, 50, 100)
+output = m(input)
+
+# Non-square kernels and different stride/padding
+m = nn.Conv2d(16, 33, (3, 5), stride=(2, 1), padding=(4, 2))
+output = m(input)
+```
+
+### Conv1d
+
+```python
+torch.nn.Conv1d(in_channels, out_channels, kernel_size, stride=1, 
+                padding=0, dilation=1, groups=1, bias=True, 
+                padding_mode='zeros', device=None, dtype=None)
+```
+
+Applies a 1D convolution over an input signal.
+
+**Shape:**
+- Input: `(N, C_in, L_in)`
+- Output: `(N, C_out, L_out)`
+
+### Conv3d
+
+```python
+torch.nn.Conv3d(in_channels, out_channels, kernel_size, stride=1, 
+                padding=0, dilation=1, groups=1, bias=True, 
+                padding_mode='zeros', device=None, dtype=None)
+```
+
+Applies a 3D convolution over an input signal.
+
+**Shape:**
+- Input: `(N, C_in, D_in, H_in, W_in)`
+- Output: `(N, C_out, D_out, H_out, W_out)`
+
+## Activation Functions
+
+Activation functions introduce non-linearity into neural networks.
+
+### ReLU
+
+```python
+torch.nn.ReLU(inplace=False)
+```
+
+Applies the rectified linear unit function: `ReLU(x) = max(0, x)`
+
+<ParamField path="inplace" type="bool" default="False">
+  If `True`, performs operation in-place
+</ParamField>
+
+**Example:**
+
+```python
+m = nn.ReLU()
+input = torch.randn(2)
+output = m(input)
+```
+
+### Sigmoid
+
+```python
+torch.nn.Sigmoid()
+```
+
+Applies the element-wise sigmoid function: `σ(x) = 1 / (1 + exp(-x))`
+
+### Tanh
+
+```python
+torch.nn.Tanh()
+```
+
+Applies the hyperbolic tangent function element-wise.
+
+### GELU
+
+```python
+torch.nn.GELU(approximate='none')
+```
+
+Applies the Gaussian Error Linear Units function.
+
+<ParamField path="approximate" type="str" default="'none'">
+  Approximation type: `'none'` or `'tanh'`
+</ParamField>
+
+### LeakyReLU
+
+```python
+torch.nn.LeakyReLU(negative_slope=0.01, inplace=False)
+```
+
+Applies element-wise: `LeakyReLU(x) = max(0, x) + negative_slope * min(0, x)`
+
+<ParamField path="negative_slope" type="float" default="0.01">
+  Controls the angle of the negative slope
+</ParamField>
+
+<ParamField path="inplace" type="bool" default="False">
+  If `True`, performs operation in-place
+</ParamField>
+
+### Softmax
+
+```python
+torch.nn.Softmax(dim=None)
+```
+
+Applies the Softmax function to an n-dimensional input Tensor.
+
+<ParamField path="dim" type="int" required>
+  Dimension along which Softmax will be computed
+</ParamField>
+
+**Example:**
+
+```python
+m = nn.Softmax(dim=1)
+input = torch.randn(2, 3)
+output = m(input)
+```
+
+## Pooling Layers
+
+### MaxPool2d
+
+```python
+torch.nn.MaxPool2d(kernel_size, stride=None, padding=0, dilation=1, 
+                   return_indices=False, ceil_mode=False)
+```
+
+Applies 2D max pooling over an input signal.
+
+<ParamField path="kernel_size" type="int | tuple" required>
+  Size of the window to take max over
+</ParamField>
+
+<ParamField path="stride" type="int | tuple" default="kernel_size">
+  Stride of the window
+</ParamField>
+
+<ParamField path="padding" type="int | tuple" default="0">
+  Implicit zero padding to be added on both sides
+</ParamField>
+
+<ParamField path="dilation" type="int | tuple" default="1">
+  Parameter that controls the stride of elements in the window
+</ParamField>
+
+<ParamField path="return_indices" type="bool" default="False">
+  If `True`, returns the max indices along with the outputs
+</ParamField>
+
+<ParamField path="ceil_mode" type="bool" default="False">
+  If `True`, uses `ceil` instead of `floor` to compute output shape
+</ParamField>
+
+**Example:**
+
+```python
+m = nn.MaxPool2d(3, stride=2)
+input = torch.randn(20, 16, 50, 32)
+output = m(input)
+```
+
+### AvgPool2d
+
+```python
+torch.nn.AvgPool2d(kernel_size, stride=None, padding=0, ceil_mode=False, 
+                   count_include_pad=True, divisor_override=None)
+```
+
+Applies 2D average pooling over an input signal.
+
+<ParamField path="count_include_pad" type="bool" default="True">
+  If `True`, includes zero-padding in the averaging calculation
+</ParamField>
+
+<ParamField path="divisor_override" type="int" default="None">
+  If specified, used as divisor instead of pooling region size
+</ParamField>
+
+### AdaptiveAvgPool2d
+
+```python
+torch.nn.AdaptiveAvgPool2d(output_size)
+```
+
+Applies 2D adaptive average pooling to produce output of specified size.
+
+<ParamField path="output_size" type="int | tuple" required>
+  Target output size (H_out, W_out)
+</ParamField>
+
+**Example:**
+
+```python
+m = nn.AdaptiveAvgPool2d((5, 7))
+input = torch.randn(1, 64, 8, 9)
+output = m(input)
+print(output.size())  # torch.Size([1, 64, 5, 7])
+```
+
+## Normalization Layers
+
+### BatchNorm2d
+
+```python
+torch.nn.BatchNorm2d(num_features, eps=1e-05, momentum=0.1, affine=True, 
+                     track_running_stats=True, device=None, dtype=None)
+```
+
+Applies Batch Normalization over a 4D input.
+
+<ParamField path="num_features" type="int" required>
+  Number of features or channels C from input of size (N, C, H, W)
+</ParamField>
+
+<ParamField path="eps" type="float" default="1e-05">
+  Value added to denominator for numerical stability
+</ParamField>
+
+<ParamField path="momentum" type="float" default="0.1">
+  Value used for running mean and variance computation
+</ParamField>
+
+<ParamField path="affine" type="bool" default="True">
+  If `True`, module has learnable affine parameters
+</ParamField>
+
+<ParamField path="track_running_stats" type="bool" default="True">
+  If `True`, tracks running mean and variance
+</ParamField>
+
+### LayerNorm
+
+```python
+torch.nn.LayerNorm(normalized_shape, eps=1e-05, elementwise_affine=True, 
+                   bias=True, device=None, dtype=None)
+```
+
+Applies Layer Normalization over a mini-batch of inputs.
+
+<ParamField path="normalized_shape" type="int | tuple" required>
+  Input shape from an expected input of size `[* x normalized_shape[0] x normalized_shape[1] x ...]`
+</ParamField>
+
+<ParamField path="elementwise_affine" type="bool" default="True">
+  If `True`, module has learnable per-element affine parameters
+</ParamField>
+
+## Dropout Layers
+
+### Dropout
+
+```python
+torch.nn.Dropout(p=0.5, inplace=False)
+```
+
+Randomly zeroes some elements of the input tensor with probability `p`.
+
+<ParamField path="p" type="float" default="0.5">
+  Probability of an element to be zeroed
+</ParamField>
+
+<ParamField path="inplace" type="bool" default="False">
+  If `True`, performs operation in-place
+</ParamField>
+
+**Example:**
+
+```python
+m = nn.Dropout(p=0.2)
+input = torch.randn(20, 16)
+output = m(input)
+```
+
+## Container Modules
+
+### Sequential
+
+```python
+torch.nn.Sequential(*args)
+```
+
+A sequential container for stacking modules.
+
+**Example:**
+
+```python
+model = nn.Sequential(
+    nn.Conv2d(1, 20, 5),
+    nn.ReLU(),
+    nn.Conv2d(20, 64, 5),
+    nn.ReLU()
+)
+```
+
+### ModuleList
+
+```python
+torch.nn.ModuleList(modules=None)
+```
+
+Holds submodules in a list.
+
+**Example:**
+
+```python
+class MyModule(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linears = nn.ModuleList([nn.Linear(10, 10) for i in range(10)])
+```
+
+### ModuleDict
+
+```python
+torch.nn.ModuleDict(modules=None)
+```
+
+Holds submodules in a dictionary.
+
+**Example:**
+
+```python
+class MyModule(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.choices = nn.ModuleDict({
+            'conv': nn.Conv2d(10, 10, 3),
+            'pool': nn.MaxPool2d(3)
+        })
+```

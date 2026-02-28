@@ -1,0 +1,512 @@
+---
+title: Model Inference
+description: Perform efficient model inference with evaluation mode, no_grad, and optimization techniques
+---
+
+## Overview
+
+Model inference is the process of using a trained model to make predictions on new data. This guide covers best practices for efficient and correct inference in PyTorch.
+
+## Basic Inference Pattern
+
+```python
+import torch
+import torch.nn as nn
+
+# Load model
+model = YourModel()
+model.load_state_dict(torch.load('model.pth'))
+
+# Set to evaluation mode
+model.eval()
+
+# Prepare input
+input_data = torch.randn(1, 3, 224, 224)
+
+# Inference with no gradient computation
+with torch.no_grad():
+    output = model(input_data)
+    prediction = output.argmax(dim=1)
+
+print(f"Predicted class: {prediction.item()}")
+```
+
+<Steps>
+  <Step title="Load the model">
+    Load your trained model and weights
+  </Step>
+  
+  <Step title="Set evaluation mode">
+    Call `model.eval()` to disable dropout and use batch norm statistics
+  </Step>
+  
+  <Step title="Disable gradients">
+    Use `torch.no_grad()` context to reduce memory usage and speed up inference
+  </Step>
+  
+  <Step title="Run inference">
+    Pass input through the model to get predictions
+  </Step>
+</Steps>
+
+## Evaluation Mode vs Training Mode
+
+### Why model.eval() Matters
+
+```python
+model = nn.Sequential(
+    nn.Linear(10, 20),
+    nn.BatchNorm1d(20),
+    nn.ReLU(),
+    nn.Dropout(0.5),
+    nn.Linear(20, 2)
+)
+
+x = torch.randn(32, 10)
+
+# Training mode (default)
+model.train()
+output_train = model(x)  # Dropout active, BatchNorm uses batch statistics
+
+# Evaluation mode
+model.eval()
+output_eval = model(x)  # Dropout disabled, BatchNorm uses running statistics
+
+# Outputs will be different!
+print(f"Outputs equal: {torch.allclose(output_train, output_eval)}")  # False
+```
+
+<Warning>
+**Critical**: Always call `model.eval()` before inference. Forgetting this is a common source of bugs:
+- Dropout layers will randomly zero activations (incorrect for inference)
+- BatchNorm layers will use batch statistics instead of running statistics
+- This leads to inconsistent and incorrect predictions
+</Warning>
+
+### What model.eval() Changes
+
+| Layer Type | Training Mode | Evaluation Mode |
+|------------|---------------|------------------|
+| **Dropout** | Randomly drops activations with probability `p` | Disabled (identity operation) |
+| **BatchNorm** | Uses current batch statistics | Uses running mean/variance |
+| **LayerNorm** | No difference | No difference |
+| **Linear/Conv** | No difference | No difference |
+
+## Memory-Efficient Inference
+
+### Using torch.no_grad()
+
+```python
+import torch
+
+model = YourModel()
+model.eval()
+
+# Without torch.no_grad() - builds computation graph
+output = model(input_data)  # Stores gradients (uses more memory)
+
+# With torch.no_grad() - no computation graph
+with torch.no_grad():
+    output = model(input_data)  # No gradient storage (saves memory)
+```
+
+<Tip>
+`torch.no_grad()` can reduce memory usage by 50% or more during inference by not storing intermediate activations needed for backpropagation.
+</Tip>
+
+### Alternative: torch.inference_mode()
+
+```python
+# Even faster than no_grad() - disables gradient tracking and autograd
+with torch.inference_mode():
+    output = model(input_data)
+```
+
+<CodeGroup>
+```python no_grad
+# Disables gradient computation
+with torch.no_grad():
+    output = model(input_data)
+    # Can still use requires_grad tensors
+```
+
+```python inference_mode
+# Disables autograd completely (faster)
+with torch.inference_mode():
+    output = model(input_data)
+    # More restrictive but better performance
+```
+</CodeGroup>
+
+## Batch Inference
+
+Process multiple inputs efficiently:
+
+```python
+import torch
+from torch.utils.data import DataLoader
+
+model.eval()
+test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+
+predictions = []
+true_labels = []
+
+with torch.no_grad():
+    for inputs, labels in test_loader:
+        inputs = inputs.to(device)
+        
+        # Batch inference
+        outputs = model(inputs)
+        preds = outputs.argmax(dim=1)
+        
+        predictions.extend(preds.cpu().numpy())
+        true_labels.extend(labels.numpy())
+
+# Convert to numpy arrays
+import numpy as np
+predictions = np.array(predictions)
+true_labels = np.array(true_labels)
+```
+
+## Single Image Inference
+
+```python
+import torch
+from PIL import Image
+from torchvision import transforms
+
+# Define preprocessing
+transform = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                       std=[0.229, 0.224, 0.225])
+])
+
+# Load and preprocess image
+image = Image.open('path/to/image.jpg')
+input_tensor = transform(image)
+input_batch = input_tensor.unsqueeze(0)  # Add batch dimension
+
+# Move to device
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = model.to(device)
+input_batch = input_batch.to(device)
+
+# Inference
+model.eval()
+with torch.no_grad():
+    output = model(input_batch)
+
+# Get prediction
+probabilities = torch.nn.functional.softmax(output[0], dim=0)
+class_idx = probabilities.argmax().item()
+confidence = probabilities[class_idx].item()
+
+print(f"Predicted class: {class_idx}")
+print(f"Confidence: {confidence:.2%}")
+```
+
+## Computing Metrics
+
+### Classification Metrics
+
+```python
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+
+def evaluate_classifier(model, test_loader, device):
+    model.eval()
+    
+    total_correct = 0
+    total_samples = 0
+    total_loss = 0
+    
+    criterion = nn.CrossEntropyLoss()
+    
+    with torch.no_grad():
+        for inputs, targets in test_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
+            
+            # Forward pass
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            
+            # Calculate accuracy
+            _, predicted = outputs.max(1)
+            total_correct += predicted.eq(targets).sum().item()
+            total_samples += targets.size(0)
+            total_loss += loss.item()
+    
+    accuracy = 100. * total_correct / total_samples
+    avg_loss = total_loss / len(test_loader)
+    
+    return accuracy, avg_loss
+
+# Usage
+accuracy, loss = evaluate_classifier(model, test_loader, device)
+print(f"Test Accuracy: {accuracy:.2f}%")
+print(f"Test Loss: {loss:.4f}")
+```
+
+### Confusion Matrix
+
+```python
+import torch
+import numpy as np
+from sklearn.metrics import confusion_matrix, classification_report
+
+def get_predictions(model, data_loader, device):
+    model.eval()
+    
+    all_preds = []
+    all_labels = []
+    
+    with torch.no_grad():
+        for inputs, labels in data_loader:
+            inputs = inputs.to(device)
+            
+            outputs = model(inputs)
+            _, preds = outputs.max(1)
+            
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.numpy())
+    
+    return np.array(all_labels), np.array(all_preds)
+
+# Get predictions
+y_true, y_pred = get_predictions(model, test_loader, device)
+
+# Confusion matrix
+cm = confusion_matrix(y_true, y_pred)
+print("Confusion Matrix:")
+print(cm)
+
+# Classification report
+report = classification_report(y_true, y_pred)
+print("\nClassification Report:")
+print(report)
+```
+
+## Model Optimization for Inference
+
+### TorchScript Compilation
+
+Convert your model to TorchScript for faster inference:
+
+```python
+import torch
+
+model = YourModel()
+model.eval()
+
+# Method 1: Tracing
+example_input = torch.randn(1, 3, 224, 224)
+traced_model = torch.jit.trace(model, example_input)
+
+# Save traced model
+traced_model.save('model_traced.pt')
+
+# Load and use
+loaded_model = torch.jit.load('model_traced.pt')
+with torch.no_grad():
+    output = loaded_model(example_input)
+```
+
+```python
+# Method 2: Scripting (for control flow)
+scripted_model = torch.jit.script(model)
+scripted_model.save('model_scripted.pt')
+```
+
+<Tip>
+TorchScript models can run in C++ environments and are typically 10-20% faster than eager mode PyTorch.
+</Tip>
+
+### Model Quantization
+
+Reduce model size and increase inference speed:
+
+```python
+import torch.quantization
+
+# Post-training static quantization
+model_fp32 = YourModel()
+model_fp32.eval()
+
+# Fuse modules (Conv+BN+ReLU)
+model_fp32 = torch.quantization.fuse_modules(
+    model_fp32,
+    [['conv', 'bn', 'relu']]
+)
+
+# Specify quantization configuration
+model_fp32.qconfig = torch.quantization.get_default_qconfig('fbgemm')
+
+# Prepare for quantization
+model_prepared = torch.quantization.prepare(model_fp32)
+
+# Calibrate with representative data
+with torch.no_grad():
+    for inputs, _ in calibration_loader:
+        model_prepared(inputs)
+
+# Convert to quantized model
+model_quantized = torch.quantization.convert(model_prepared)
+
+# Inference with quantized model
+with torch.no_grad():
+    output = model_quantized(input_data)
+```
+
+## GPU Inference Optimization
+
+### Using Multiple GPUs
+
+```python
+if torch.cuda.device_count() > 1:
+    model = nn.DataParallel(model)
+    
+model = model.cuda()
+
+with torch.no_grad():
+    inputs = inputs.cuda()
+    outputs = model(inputs)
+```
+
+### Optimizing Batch Size
+
+```python
+def find_optimal_batch_size(model, input_shape, device):
+    """Find largest batch size that fits in memory."""
+    batch_size = 1
+    
+    while True:
+        try:
+            # Create dummy batch
+            dummy_input = torch.randn(batch_size, *input_shape).to(device)
+            
+            with torch.no_grad():
+                _ = model(dummy_input)
+            
+            # Clear cache
+            del dummy_input
+            torch.cuda.empty_cache()
+            
+            batch_size *= 2
+            
+        except RuntimeError:  # Out of memory
+            batch_size //= 2
+            break
+    
+    return batch_size
+
+optimal_bs = find_optimal_batch_size(model, (3, 224, 224), device)
+print(f"Optimal batch size: {optimal_bs}")
+```
+
+## Inference on CPU
+
+For CPU inference optimization:
+
+```python
+import torch
+
+# Enable Intel MKL optimizations
+torch.set_num_threads(4)  # Set number of CPU threads
+
+model = YourModel()
+model.eval()
+
+# CPU inference
+with torch.no_grad():
+    with torch.cpu.amp.autocast():  # CPU automatic mixed precision
+        output = model(input_data)
+```
+
+## Real-time Inference Example
+
+```python
+import time
+import torch
+
+class InferenceEngine:
+    def __init__(self, model, device='cuda'):
+        self.model = model.to(device)
+        self.model.eval()
+        self.device = device
+    
+    @torch.no_grad()
+    def predict(self, input_tensor):
+        # Move to device
+        input_tensor = input_tensor.to(self.device)
+        
+        # Time inference
+        start_time = time.time()
+        
+        # Forward pass
+        output = self.model(input_tensor)
+        
+        # Synchronize for accurate timing
+        if self.device == 'cuda':
+            torch.cuda.synchronize()
+        
+        inference_time = (time.time() - start_time) * 1000  # ms
+        
+        # Get prediction
+        probabilities = torch.softmax(output, dim=1)
+        confidence, predicted_class = probabilities.max(1)
+        
+        return {
+            'class': predicted_class.item(),
+            'confidence': confidence.item(),
+            'inference_time_ms': inference_time,
+            'probabilities': probabilities.cpu().numpy()
+        }
+
+# Usage
+engine = InferenceEngine(model, device='cuda')
+
+input_data = torch.randn(1, 3, 224, 224)
+result = engine.predict(input_data)
+
+print(f"Class: {result['class']}")
+print(f"Confidence: {result['confidence']:.2%}")
+print(f"Inference time: {result['inference_time_ms']:.2f} ms")
+```
+
+## Best Practices
+
+<Accordion title="Inference checklist">
+- Always call `model.eval()` before inference
+- Use `torch.no_grad()` or `torch.inference_mode()` to save memory
+- Move both model and data to the same device
+- Use appropriate batch sizes for your hardware
+- Profile your code to identify bottlenecks
+- Consider model optimization techniques (quantization, pruning, distillation)
+</Accordion>
+
+<Accordion title="Common mistakes">
+- Forgetting to call `model.eval()` (causes incorrect predictions)
+- Not using `torch.no_grad()` (wastes memory)
+- Processing one sample at a time instead of batching
+- Not moving inputs to the correct device
+- Using training mode for inference
+</Accordion>
+
+<Accordion title="Performance tips">
+- Use larger batch sizes when possible
+- Enable mixed precision with `torch.cuda.amp.autocast()`
+- Use TorchScript for production deployments
+- Profile with `torch.profiler` to identify bottlenecks
+- Consider model quantization for edge deployment
+</Accordion>
+
+## Next Steps
+
+- Learn about [saving and loading models](/guides/saving-loading)
+- Explore [optimizer configurations](/guides/optimization)
+- Understand [model training](/guides/training)

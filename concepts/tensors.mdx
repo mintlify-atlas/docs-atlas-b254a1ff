@@ -1,0 +1,389 @@
+---
+title: Tensors
+description: Learn about PyTorch tensors - the fundamental building blocks for deep learning computations
+---
+
+# Tensors
+
+Tensors are the fundamental data structure in PyTorch. They are multi-dimensional arrays similar to NumPy ndarrays, but with the added capability of running on GPUs and automatic differentiation.
+
+## What is a Tensor?
+
+A tensor is a generalization of vectors and matrices to potentially higher dimensions. In PyTorch, tensors are used to encode inputs, outputs, and model parameters.
+
+<Note>
+Tensors are similar to NumPy arrays, but can run on GPUs to accelerate computing and support automatic differentiation for building neural networks.
+</Note>
+
+## Creating Tensors
+
+PyTorch provides multiple ways to create tensors:
+
+### From Data
+
+<CodeGroup>
+```python Direct Creation
+import torch
+
+# From Python lists
+x = torch.tensor([[1, 2], [3, 4]])
+print(x)
+# tensor([[1, 2],
+#         [3, 4]])
+
+# From NumPy arrays
+import numpy as np
+np_array = np.array([[1, 2], [3, 4]])
+x = torch.from_numpy(np_array)
+```
+
+```python With Specific Data Types
+# Float tensor
+x = torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)
+
+# Integer tensor
+y = torch.tensor([1, 2, 3], dtype=torch.int64)
+
+# Boolean tensor
+z = torch.tensor([True, False, True], dtype=torch.bool)
+```
+</CodeGroup>
+
+### Random and Constant Tensors
+
+```python
+import torch
+
+# Random tensors
+x = torch.rand(3, 4)      # Uniform [0, 1)
+y = torch.randn(3, 4)     # Normal distribution (mean=0, std=1)
+
+# Constant tensors
+zeros = torch.zeros(2, 3)  # Shape: (2, 3)
+ones = torch.ones(2, 3)    # Shape: (2, 3)
+full = torch.full((2, 3), 7)  # Fill with value 7
+
+# Identity matrix
+eye = torch.eye(3)  # Shape: (3, 3)
+```
+
+### Tensor Shapes
+
+<Tip>
+In deep learning, understanding tensor shapes is crucial. A batch of 32 RGB images of size 224x224 has shape `(32, 3, 224, 224)`: batch_size × channels × height × width.
+</Tip>
+
+```python
+import torch
+
+# Create a tensor representing a batch of images
+# Shape: (batch_size, channels, height, width)
+batch_size = 32
+channels = 3  # RGB
+height, width = 224, 224
+
+images = torch.randn(batch_size, channels, height, width)
+print(f"Images shape: {images.shape}")  # torch.Size([32, 3, 224, 224])
+print(f"Number of dimensions: {images.ndim}")  # 4
+print(f"Total elements: {images.numel()}")  # 32 * 3 * 224 * 224
+```
+
+## Tensor Operations
+
+PyTorch tensors support a wide variety of operations:
+
+### Arithmetic Operations
+
+<CodeGroup>
+```python Element-wise Operations
+import torch
+
+x = torch.tensor([1.0, 2.0, 3.0])
+y = torch.tensor([4.0, 5.0, 6.0])
+
+# Addition
+z = x + y  # tensor([5., 7., 9.])
+z = torch.add(x, y)  # Same as above
+
+# Multiplication
+z = x * y  # tensor([4., 10., 18.])
+z = torch.mul(x, y)  # Same as above
+
+# Division
+z = x / y  # tensor([0.25, 0.4, 0.5])
+```
+
+```python Matrix Operations
+import torch
+
+# Matrix multiplication
+A = torch.randn(3, 4)
+B = torch.randn(4, 5)
+C = torch.matmul(A, B)  # Shape: (3, 5)
+C = A @ B  # Same using @ operator
+
+# Batch matrix multiplication
+batch = torch.randn(32, 3, 4)  # 32 matrices of shape (3, 4)
+weights = torch.randn(32, 4, 5)  # 32 matrices of shape (4, 5)
+result = torch.bmm(batch, weights)  # Shape: (32, 3, 5)
+```
+</CodeGroup>
+
+### Reshaping and Indexing
+
+```python
+import torch
+
+x = torch.randn(4, 4)
+
+# Reshaping
+y = x.view(16)  # Flatten to 1D, shape: (16,)
+z = x.view(2, 8)  # Shape: (2, 8)
+
+# view() requires contiguous memory
+# Use reshape() for automatic handling
+w = x.reshape(2, 8)  # More flexible than view()
+
+# Transpose
+xt = x.t()  # Transpose 2D tensor
+xt = x.transpose(0, 1)  # Swap dimensions 0 and 1
+
+# Indexing and slicing
+first_row = x[0, :]     # First row
+first_col = x[:, 0]     # First column
+submatrix = x[1:3, 1:3] # 2x2 submatrix
+
+# Advanced indexing
+mask = x > 0
+positive_vals = x[mask]  # Get all positive values
+```
+
+### Reduction Operations
+
+```python
+import torch
+
+x = torch.randn(3, 4)
+
+# Sum
+total = x.sum()  # Sum all elements
+row_sum = x.sum(dim=1)  # Sum along columns (per row), shape: (3,)
+col_sum = x.sum(dim=0)  # Sum along rows (per column), shape: (4,)
+
+# Mean, max, min
+mean_val = x.mean()
+max_val = x.max()
+min_val = x.min()
+
+# Along specific dimensions
+max_per_row, indices = x.max(dim=1)  # Returns values and indices
+```
+
+## GPU Acceleration
+
+One of PyTorch's key features is seamless GPU support for accelerating tensor computations.
+
+<Accordion title="GPU Memory Management">
+When working with GPUs, be mindful of memory usage. Large tensors can quickly consume GPU memory. Use `torch.cuda.empty_cache()` to free unused cached memory, and consider using mixed precision training with `torch.cuda.amp` for memory efficiency.
+</Accordion>
+
+### Moving Tensors to GPU
+
+```python
+import torch
+
+# Check if CUDA is available
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+    print(f"Using GPU: {torch.cuda.get_device_name(0)}")
+else:
+    device = torch.device("cpu")
+    print("Using CPU")
+
+# Create tensor on CPU
+x = torch.randn(1000, 1000)
+
+# Move to GPU
+if torch.cuda.is_available():
+    x_gpu = x.to(device)  # or x.cuda()
+    
+    # Create directly on GPU
+    y_gpu = torch.randn(1000, 1000, device=device)
+    
+    # Operations on GPU
+    z_gpu = x_gpu @ y_gpu  # Fast matrix multiplication on GPU
+    
+    # Move back to CPU
+    z_cpu = z_gpu.cpu()
+```
+
+### Multi-GPU Support
+
+```python
+import torch
+
+# Check number of GPUs
+num_gpus = torch.cuda.device_count()
+print(f"Available GPUs: {num_gpus}")
+
+# Use specific GPU
+if num_gpus > 1:
+    x = torch.randn(100, 100, device="cuda:0")  # GPU 0
+    y = torch.randn(100, 100, device="cuda:1")  # GPU 1
+    
+    # Move to same device for operations
+    y = y.to("cuda:0")
+    z = x @ y
+```
+
+## Tensor Data Types
+
+PyTorch supports various data types (dtypes) for different use cases:
+
+<Tabs>
+  <Tab title="Floating Point">
+    ```python
+    import torch
+    
+    # 32-bit float (default)
+    x = torch.tensor([1.0, 2.0], dtype=torch.float32)
+    # Or torch.float
+    
+    # 64-bit float (double precision)
+    y = torch.tensor([1.0, 2.0], dtype=torch.float64)
+    # Or torch.double
+    
+    # 16-bit float (half precision, for memory efficiency)
+    z = torch.tensor([1.0, 2.0], dtype=torch.float16)
+    # Or torch.half
+    
+    # BFloat16 (better range than float16)
+    w = torch.tensor([1.0, 2.0], dtype=torch.bfloat16)
+    ```
+  </Tab>
+  
+  <Tab title="Integer">
+    ```python
+    import torch
+    
+    # 64-bit integer
+    x = torch.tensor([1, 2, 3], dtype=torch.int64)
+    # Or torch.long
+    
+    # 32-bit integer
+    y = torch.tensor([1, 2, 3], dtype=torch.int32)
+    # Or torch.int
+    
+    # 8-bit integer
+    z = torch.tensor([1, 2, 3], dtype=torch.int8)
+    ```
+  </Tab>
+  
+  <Tab title="Boolean">
+    ```python
+    import torch
+    
+    # Boolean tensors
+    x = torch.tensor([True, False, True], dtype=torch.bool)
+    
+    # From comparisons
+    y = torch.randn(5)
+    mask = y > 0  # Boolean tensor
+    
+    # Use in indexing
+    positive_values = y[mask]
+    ```
+  </Tab>
+</Tabs>
+
+### Type Conversion
+
+```python
+import torch
+
+x = torch.tensor([1.5, 2.7, 3.2])
+
+# Convert to integer
+y = x.int()  # tensor([1, 2, 3])
+y = x.to(torch.int32)  # Same as above
+
+# Convert to float
+z = torch.tensor([1, 2, 3])
+w = z.float()  # tensor([1., 2., 3.])
+
+# Convert to double
+d = x.double()
+```
+
+## In-place Operations
+
+Operations with a `_` suffix modify tensors in-place:
+
+<Note>
+In-place operations save memory but can cause issues with autograd. Avoid using them on tensors that require gradients unless you know what you're doing.
+</Note>
+
+```python
+import torch
+
+x = torch.tensor([1.0, 2.0, 3.0])
+
+# Regular operation (creates new tensor)
+y = x.add(5)  # x unchanged, y = [6., 7., 8.]
+
+# In-place operation (modifies x)
+x.add_(5)  # x = [6., 7., 8.]
+
+# Other in-place operations
+x.mul_(2)  # Multiply in-place
+x.zero_()  # Fill with zeros
+x.normal_(0, 1)  # Fill with random normal values
+```
+
+## Common Tensor Attributes
+
+```python
+import torch
+
+x = torch.randn(3, 4, 5)
+
+# Shape
+print(x.shape)  # torch.Size([3, 4, 5])
+print(x.size())  # Same as x.shape
+
+# Data type
+print(x.dtype)  # torch.float32
+
+# Device
+print(x.device)  # cpu or cuda:0, etc.
+
+# Number of dimensions
+print(x.ndim)  # 3
+
+# Total number of elements
+print(x.numel())  # 60 (3 * 4 * 5)
+
+# Memory layout
+print(x.is_contiguous())  # True or False
+```
+
+## Best Practices
+
+<Tip>
+1. **Use appropriate dtype**: Float32 is standard for deep learning. Use float16 or bfloat16 for memory efficiency with mixed precision training
+2. **Batch operations**: Always prefer batched operations over loops for better performance
+3. **Minimize CPU-GPU transfers**: Moving data between CPU and GPU is expensive
+4. **In-place operations**: Use carefully, especially with autograd
+5. **Track tensor shapes**: Print tensor shapes during development to catch dimension mismatches early
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Automatic Differentiation" icon="chart-line" href="/concepts/autograd">
+    Learn how PyTorch automatically computes gradients
+  </Card>
+  <Card title="Neural Networks" icon="brain" href="/concepts/neural-networks">
+    Build neural networks with torch.nn
+  </Card>
+</CardGroup>

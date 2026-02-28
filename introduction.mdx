@@ -1,0 +1,107 @@
+---
+title: Introduction to PyTorch
+description: Open-source machine learning framework for building neural networks with GPU acceleration
+---
+
+# Welcome to PyTorch
+
+PyTorch is a Python package that provides two high-level features:
+- **Tensor computation** (like NumPy) with strong GPU acceleration
+- **Deep neural networks** built on a tape-based autograd system
+
+You can reuse your favorite Python packages such as NumPy, SciPy, and Cython to extend PyTorch when needed.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="GPU-Ready Tensors" icon="microchip">
+    PyTorch provides Tensors that can live either on the CPU or the GPU and accelerates computation by a huge amount. Wide variety of tensor routines for slicing, indexing, math operations, linear algebra, and reductions.
+  </Card>
+  
+  <Card title="Dynamic Computation Graphs" icon="diagram-project">
+    Built on a tape-based autograd system using reverse-mode auto-differentiation. Change network behavior arbitrarily with zero lag or overhead, making it ideal for research and experimentation.
+  </Card>
+  
+  <Card title="Python First" icon="python">
+    Deeply integrated into Python. Write neural network layers in Python itself using your favorite libraries. Not a Python binding into a monolithic C++ framework.
+  </Card>
+  
+  <Card title="Production Ready" icon="rocket">
+    TorchScript compilation stack creates serializable and optimizable models. Minimal framework overhead with integration of Intel MKL and NVIDIA cuDNN for maximum speed.
+  </Card>
+</CardGroup>
+
+## Core Components
+
+PyTorch consists of the following main components:
+
+| Component | Description |
+| --- | --- |
+| **torch** | A Tensor library like NumPy, with strong GPU support |
+| **torch.autograd** | A tape-based automatic differentiation library that supports all differentiable Tensor operations |
+| **torch.nn** | A neural networks library deeply integrated with autograd designed for maximum flexibility |
+| **torch.optim** | An optimization package with standard optimization algorithms like SGD, Adam, RMSprop |
+| **torch.utils** | DataLoader and other utility functions for convenience |
+| **torch.jit** | A compilation stack (TorchScript) to create serializable and optimizable models |
+
+## Use Cases
+
+PyTorch is commonly used for:
+
+<CardGroup cols={2}>
+  <Card title="NumPy Replacement" icon="arrow-right-arrow-left">
+    Use the power of GPUs for numerical computation
+  </Card>
+  
+  <Card title="Deep Learning Research" icon="flask">
+    Provides maximum flexibility and speed for cutting-edge research
+  </Card>
+  
+  <Card title="Computer Vision" icon="camera">
+    Image classification, object detection, segmentation with torchvision
+  </Card>
+  
+  <Card title="Natural Language Processing" icon="language">
+    Text processing, language models, translation with torchtext
+  </Card>
+</CardGroup>
+
+<Note>
+  PyTorch uses shared memory to share data between processes. When using multiprocessing (e.g., for multithreaded data loaders), you may need to increase the shared memory size.
+</Note>
+
+## What Makes PyTorch Different?
+
+### Imperative Experience
+
+PyTorch is designed to be intuitive, linear in thought, and easy to use. When you execute a line of code, it gets executed immediately. There isn't an asynchronous view of the world. When you drop into a debugger or receive error messages and stack traces, understanding them is straightforward.
+
+### Fast and Lean
+
+PyTorch has minimal framework overhead. It integrates acceleration libraries such as Intel MKL and NVIDIA cuDNN to maximize speed. The memory usage is extremely efficient with custom memory allocators for the GPU to ensure that your deep learning models are maximally memory efficient.
+
+### Extensions Without Pain
+
+Writing new neural network modules or interfacing with PyTorch's Tensor API is straightforward with minimal abstractions. You can write new neural network layers in Python using the torch API or your favorite NumPy-based libraries.
+
+<Tip>
+  Ready to get started? Check out the [Installation](/installation) guide to set up PyTorch on your system, or jump straight to the [Quick Start](/quickstart) guide to see PyTorch in action.
+</Tip>
+
+## System Requirements
+
+- **Python**: 3.10 or later (for building from source)
+- **Operating Systems**: Linux, macOS, Windows
+- **GPU Support**: NVIDIA CUDA 11.1+, AMD ROCm 4.0+, Intel GPU (Linux/Windows)
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Install PyTorch with pip, conda, or build from source
+  </Card>
+  
+  <Card title="Quick Start" icon="bolt" href="/quickstart">
+    Learn the basics with hands-on examples
+  </Card>
+</CardGroup>

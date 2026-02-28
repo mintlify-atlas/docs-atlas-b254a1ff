@@ -1,0 +1,555 @@
+---
+title: 'torch.autograd - Automatic Differentiation'
+description: 'PyTorch autograd API reference for gradient computation and automatic differentiation'
+---
+
+## Overview
+
+`torch.autograd` provides classes and functions for automatic differentiation of arbitrary scalar valued functions. It requires minimal changes to existing code - you only need to declare Tensors with `requires_grad=True`.
+
+Supported types: floating point (half, float, double, bfloat16) and complex (cfloat, cdouble) tensors.
+
+## Core Functions
+
+<AccordionGroup>
+  <Accordion title="torch.autograd.backward()">
+    Computes the sum of gradients of given tensors with respect to graph leaves.
+    
+    <ParamField path="tensors" type="Tensor or Sequence[Tensor]" required>
+      Tensors of which the derivative will be computed.
+    </ParamField>
+    
+    <ParamField path="grad_tensors" type="Tensor or Sequence[Tensor]">
+      The "vector" in the Jacobian-vector product. Should be a sequence of matching length. Required for non-scalar tensors.
+    </ParamField>
+    
+    <ParamField path="retain_graph" type="bool">
+      If False, the graph used to compute grad will be freed. Defaults to create_graph value.
+    </ParamField>
+    
+    <ParamField path="create_graph" type="bool" default="False">
+      If True, graph of the derivative will be constructed for higher order derivatives.
+    </ParamField>
+    
+    <ParamField path="inputs" type="Tensor or Sequence[Tensor]">
+      Inputs w.r.t. which the gradient will be accumulated into .grad. If not provided, accumulates into all leaf tensors.
+    </ParamField>
+    
+    This function accumulates gradients in the leaves. You might need to zero `.grad` attributes before calling.
+    
+    ```python
+    import torch
+    
+    x = torch.tensor([1., 2., 3.], requires_grad=True)
+    y = x.sum()
+    
+    # Compute gradients
+    torch.autograd.backward(y)
+    print(x.grad)  # tensor([1., 1., 1.])
+    ```
+  </Accordion>
+
+  <Accordion title="torch.autograd.grad()">
+    Computes and returns the sum of gradients of outputs with respect to inputs.
+    
+    <ParamField path="outputs" type="Tensor or Sequence[Tensor]" required>
+      Outputs of the differentiated function.
+    </ParamField>
+    
+    <ParamField path="inputs" type="Tensor or Sequence[Tensor]" required>
+      Inputs w.r.t. which the gradient will be returned (not accumulated into .grad).
+    </ParamField>
+    
+    <ParamField path="grad_outputs" type="Tensor or Sequence[Tensor]">
+      The "vector" in the vector-Jacobian product. Usually gradients w.r.t. each output.
+    </ParamField>
+    
+    <ParamField path="retain_graph" type="bool">
+      If False, the graph will be freed. Defaults to create_graph value.
+    </ParamField>
+    
+    <ParamField path="create_graph" type="bool" default="False">
+      If True, graph of derivative will be constructed for higher order derivatives.
+    </ParamField>
+    
+    <ParamField path="allow_unused" type="bool">
+      If False, error if inputs not used. Defaults to materialize_grads value.
+    </ParamField>
+    
+    <ParamField path="is_grads_batched" type="bool" default="False">
+      If True, first dimension of grad_outputs is batch dimension for vectorized Jacobian computation.
+    </ParamField>
+    
+    <ParamField path="materialize_grads" type="bool" default="False">
+      If True, set gradient for unused inputs to zero instead of None.
+    </ParamField>
+    
+    <ResponseField name="gradients" type="tuple[Tensor]">
+      Tuple of gradients, one for each input.
+    </ResponseField>
+    
+    ```python
+    import torch
+    
+    x = torch.tensor([1., 2., 3.], requires_grad=True)
+    y = x ** 2
+    z = y.sum()
+    
+    # Compute gradients without accumulating
+    grads = torch.autograd.grad(z, x)
+    print(grads[0])  # tensor([2., 4., 6.])
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Gradient Control
+
+<AccordionGroup>
+  <Accordion title="torch.autograd.no_grad()">
+    Context manager that disables gradient calculation.
+    
+    Disabling gradient calculation is useful for inference when you are sure you will not call `backward()`. It reduces memory consumption and speeds up computations.
+    
+    ```python
+    import torch
+    
+    x = torch.tensor([1., 2., 3.], requires_grad=True)
+    
+    with torch.no_grad():
+        y = x ** 2  # No gradient tracking
+        print(y.requires_grad)  # False
+    ```
+    
+    Can also be used as a decorator:
+    ```python
+    @torch.no_grad()
+    def inference(model, data):
+        return model(data)
+    ```
+  </Accordion>
+
+  <Accordion title="torch.autograd.enable_grad()">
+    Context manager that enables gradient calculation.
+    
+    Enables gradients in a region where they were disabled (e.g., inside a `no_grad` context).
+    
+    ```python
+    import torch
+    
+    x = torch.tensor([1., 2., 3.], requires_grad=True)
+    
+    with torch.no_grad():
+        with torch.enable_grad():
+            y = x ** 2  # Gradient tracking enabled
+            print(y.requires_grad)  # True
+    ```
+  </Accordion>
+
+  <Accordion title="torch.autograd.set_grad_enabled()">
+    Context manager to set gradient calculation on or off.
+    
+    <ParamField path="mode" type="bool" required>
+      Flag whether to enable grad (True) or disable (False).
+    </ParamField>
+    
+    Useful for conditionally enabling/disabling gradients:
+    
+    ```python
+    import torch
+    
+    def forward(x, training=True):
+        with torch.set_grad_enabled(training):
+            y = x ** 2
+            return y
+    
+    x = torch.tensor([1., 2., 3.], requires_grad=True)
+    y = forward(x, training=False)  # No gradients
+    ```
+  </Accordion>
+
+  <Accordion title="torch.autograd.inference_mode()">
+    Context manager that disables autograd and reduces overhead.
+    
+    Similar to `no_grad()` but faster and with more restrictions. Tensors created in inference mode cannot be used with autograd afterward.
+    
+    ```python
+    import torch
+    
+    with torch.inference_mode():
+        # Faster inference, but tensors can't be used
+        # for autograd after leaving this context
+        y = model(x)
+    ```
+    
+    Key differences from `no_grad()`:
+    - Lower overhead (faster)
+    - Tensors created inside cannot require gradients later
+    - View relationships not tracked
+  </Accordion>
+</AccordionGroup>
+
+## Debugging and Validation
+
+<AccordionGroup>
+  <Accordion title="torch.autograd.gradcheck()">
+    Checks gradients computed via small finite differences against analytical gradients.
+    
+    <ParamField path="func" type="callable" required>
+      A Python function that takes Tensor inputs and returns a Tensor or tuple of Tensors.
+    </ParamField>
+    
+    <ParamField path="inputs" type="Tensor or tuple of Tensors" required>
+      Inputs to the function.
+    </ParamField>
+    
+    <ParamField path="eps" type="float" default="1e-6">
+      Perturbation for finite differences.
+    </ParamField>
+    
+    <ParamField path="atol" type="float" default="1e-5">
+      Absolute tolerance.
+    </ParamField>
+    
+    <ParamField path="rtol" type="float" default="1e-3">
+      Relative tolerance.
+    </ParamField>
+    
+    <ParamField path="raise_exception" type="bool" default="True">
+      Whether to raise exception on failure.
+    </ParamField>
+    
+    <ResponseField name="success" type="bool">
+      True if gradients are correct.
+    </ResponseField>
+    
+    ```python
+    import torch
+    from torch.autograd import gradcheck
+    
+    def my_func(x):
+        return x ** 2
+    
+    x = torch.randn(3, 4, dtype=torch.double, requires_grad=True)
+    test = gradcheck(my_func, x, eps=1e-6, atol=1e-4)
+    print(f"Gradcheck passed: {test}")
+    ```
+  </Accordion>
+
+  <Accordion title="torch.autograd.gradgradcheck()">
+    Checks gradients of gradients (second derivatives).
+    
+    <ParamField path="func" type="callable" required>
+      A Python function that takes Tensor inputs and returns a Tensor or tuple of Tensors.
+    </ParamField>
+    
+    <ParamField path="inputs" type="Tensor or tuple of Tensors" required>
+      Inputs to the function.
+    </ParamField>
+    
+    <ParamField path="grad_outputs" type="Tensor or tuple of Tensors">
+      Gradient outputs for computing second derivatives.
+    </ParamField>
+    
+    Parameters similar to `gradcheck()`.
+    
+    ```python
+    import torch
+    from torch.autograd import gradgradcheck
+    
+    def my_func(x):
+        return (x ** 3).sum()
+    
+    x = torch.randn(3, 4, dtype=torch.double, requires_grad=True)
+    test = gradgradcheck(my_func, x)
+    print(f"Gradgradcheck passed: {test}")
+    ```
+  </Accordion>
+
+  <Accordion title="torch.autograd.detect_anomaly()">
+    Context manager that enables anomaly detection for autograd.
+    
+    <ParamField path="check_nan" type="bool" default="True">
+      Whether to check for NaN in backward pass.
+    </ParamField>
+    
+    When enabled, forward pass will run with anomaly detection enabled and backward pass will raise errors if NaN/Inf gradients are detected.
+    
+    ```python
+    import torch
+    
+    x = torch.tensor([1., 2., 3.], requires_grad=True)
+    
+    with torch.autograd.detect_anomaly():
+        y = x ** 2
+        z = y.sum()
+        z.backward()
+        # If NaN/Inf detected, provides detailed error
+    ```
+  </Accordion>
+
+  <Accordion title="torch.autograd.set_detect_anomaly()">
+    Sets global anomaly detection mode.
+    
+    <ParamField path="mode" type="bool" required>
+      If True, enables anomaly detection globally.
+    </ParamField>
+    
+    <ParamField path="check_nan" type="bool" default="True">
+      Whether to check for NaN.
+    </ParamField>
+    
+    ```python
+    torch.autograd.set_detect_anomaly(True)
+    # Now all backward passes check for anomalies
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Custom Functions
+
+<AccordionGroup>
+  <Accordion title="torch.autograd.Function">
+    Base class for creating custom autograd functions.
+    
+    To create a custom function, subclass `Function` and implement `forward()` and `backward()` static methods.
+    
+    ```python
+    import torch
+    from torch.autograd import Function
+    
+    class MySquare(Function):
+        @staticmethod
+        def forward(ctx, input):
+            ctx.save_for_backward(input)
+            return input ** 2
+        
+        @staticmethod
+        def backward(ctx, grad_output):
+            input, = ctx.saved_tensors
+            grad_input = 2 * input * grad_output
+            return grad_input
+    
+    # Usage
+    x = torch.tensor([1., 2., 3.], requires_grad=True)
+    y = MySquare.apply(x)
+    y.sum().backward()
+    print(x.grad)  # tensor([2., 4., 6.])
+    ```
+    
+    **Methods:**
+    
+    <ParamField path="forward(ctx, *args, **kwargs)" type="staticmethod">
+      Performs the operation. Must be implemented by subclass.
+      
+      - `ctx`: Context object to save information for backward
+      - `*args, **kwargs`: Input tensors and other arguments
+      - Returns: Output tensor(s)
+    </ParamField>
+    
+    <ParamField path="backward(ctx, *grad_outputs)" type="staticmethod">
+      Defines gradient formula. Must be implemented by subclass.
+      
+      - `ctx`: Context object with saved tensors
+      - `*grad_outputs`: Gradients w.r.t. outputs
+      - Returns: Gradients w.r.t. inputs (one per input, or None)
+    </ParamField>
+  </Accordion>
+
+  <Accordion title="Context Methods">
+    Methods available in `ctx` (context object) for custom functions:
+    
+    **ctx.save_for_backward(*tensors)**
+    Saves tensors to use in backward pass.
+    
+    ```python
+    def forward(ctx, input, weight):
+        ctx.save_for_backward(input, weight)
+        return input @ weight
+    ```
+    
+    **ctx.saved_tensors**
+    Retrieves saved tensors in backward.
+    
+    ```python
+    def backward(ctx, grad_output):
+        input, weight = ctx.saved_tensors
+        grad_input = grad_output @ weight.t()
+        grad_weight = input.t() @ grad_output
+        return grad_input, grad_weight
+    ```
+    
+    **ctx.mark_non_differentiable(*tensors)**
+    Marks output tensors as non-differentiable.
+    
+    **ctx.set_materialize_grads(value)**
+    Sets whether to materialize gradient tensors that are None.
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Features
+
+<AccordionGroup>
+  <Accordion title="Gradient Accumulation">
+    Gradients accumulate in `.grad` attribute by default:
+    
+    ```python
+    import torch
+    
+    x = torch.tensor([1., 2., 3.], requires_grad=True)
+    
+    # First backward
+    y = x.sum()
+    y.backward()
+    print(x.grad)  # tensor([1., 1., 1.])
+    
+    # Second backward - gradients accumulate
+    y = x.sum()
+    y.backward()
+    print(x.grad)  # tensor([2., 2., 2.])
+    
+    # Clear gradients
+    x.grad.zero_()
+    # Or better for memory:
+    x.grad = None
+    ```
+  </Accordion>
+
+  <Accordion title="Higher Order Gradients">
+    Compute gradients of gradients:
+    
+    ```python
+    import torch
+    
+    x = torch.tensor([1., 2., 3.], requires_grad=True)
+    y = x ** 3
+    
+    # First derivative
+    grad_x = torch.autograd.grad(
+        outputs=y,
+        inputs=x,
+        grad_outputs=torch.ones_like(y),
+        create_graph=True  # Keep graph for next derivative
+    )[0]
+    
+    # Second derivative
+    grad_grad_x = torch.autograd.grad(
+        outputs=grad_x,
+        inputs=x,
+        grad_outputs=torch.ones_like(grad_x)
+    )[0]
+    
+    print(grad_x)       # tensor([3., 12., 27.])
+    print(grad_grad_x)  # tensor([6., 12., 18.])
+    ```
+  </Accordion>
+
+  <Accordion title="Checkpointing">
+    Trade compute for memory by recomputing forward pass during backward:
+    
+    ```python
+    import torch
+    from torch.utils.checkpoint import checkpoint
+    
+    def custom_forward(x, y):
+        z = x * y
+        z = z ** 2
+        return z
+    
+    x = torch.randn(100, 100, requires_grad=True)
+    y = torch.randn(100, 100, requires_grad=True)
+    
+    # Regular: stores all intermediate tensors
+    z = custom_forward(x, y)
+    
+    # Checkpointed: only stores inputs, recomputes forward during backward
+    z = checkpoint(custom_forward, x, y)
+    ```
+  </Accordion>
+
+  <Accordion title="Jacobian and Hessian">
+    Compute full Jacobian or Hessian matrices:
+    
+    ```python
+    import torch
+    from torch.autograd.functional import jacobian, hessian
+    
+    def f(x):
+        return x ** 2
+    
+    x = torch.tensor([1., 2., 3.])
+    
+    # Jacobian: derivative matrix
+    jac = jacobian(f, x)
+    print(jac)  # diag([2., 4., 6.])
+    
+    # Hessian: second derivative matrix
+    hess = hessian(f, x)
+    print(hess)  # diag([2., 2., 2.])
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Performance Tips
+
+<Accordion title="Reduce Memory Usage">
+  1. **Use inference_mode() for inference:**
+     ```python
+     with torch.inference_mode():
+         outputs = model(inputs)
+     ```
+  
+  2. **Clear gradients efficiently:**
+     ```python
+     # Better memory behavior
+     model.zero_grad(set_to_none=True)
+     # Instead of
+     model.zero_grad()
+     ```
+  
+  3. **Use gradient checkpointing for large models:**
+     ```python
+     from torch.utils.checkpoint import checkpoint
+     y = checkpoint(large_module, x)
+     ```
+</Accordion>
+
+<Accordion title="Avoid Common Pitfalls">
+  1. **In-place operations** can cause errors:
+     ```python
+     x = torch.tensor([1., 2., 3.], requires_grad=True)
+     y = x ** 2
+     y += 1  # Error if you later need y.backward()
+     # Better: y = y + 1
+     ```
+  
+  2. **Detach when mixing autograd and non-autograd:**
+     ```python
+     x = torch.randn(3, requires_grad=True)
+     y = x.detach().numpy()  # Convert to numpy
+     ```
+  
+  3. **Memory leaks** with retain_graph:
+     ```python
+     # Only use retain_graph when needed
+     loss.backward(retain_graph=True)
+     # Clear gradients after last backward
+     model.zero_grad(set_to_none=True)
+     ```
+</Accordion>
+
+## Related APIs
+
+<CardGroup cols={2}>
+  <Card title="torch Module" icon="box" href="/api/torch">
+    Core PyTorch functions
+  </Card>
+  <Card title="Tensor API" icon="cube" href="/api/tensor">
+    Tensor operations and methods
+  </Card>
+  <Card title="torch.nn" icon="brain" href="/api/nn">
+    Neural network modules
+  </Card>
+  <Card title="torch.optim" icon="gauge" href="/api/optim">
+    Optimization algorithms
+  </Card>
+</CardGroup>

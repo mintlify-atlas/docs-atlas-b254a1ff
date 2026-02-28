@@ -1,0 +1,428 @@
+---
+title: 'C++ Tensor API'
+description: 'Working with tensors in the PyTorch C++ API (ATen)'
+---
+
+## Overview
+
+The ATen tensor library is the foundation of PyTorch, providing a simple, powerful API for tensor operations in C++17. ATen exposes tensor operations directly in C++ without templates, using dynamic type resolution similar to Python.
+
+## Key Concepts
+
+### Dynamic Typing
+
+ATen uses a single `Tensor` type that can hold different data types (float, int, double) and devices (CPU, CUDA). Types are resolved at runtime, making the API generic and easy to use without templates.
+
+```cpp
+#include <torch/torch.h>
+
+// All are the same Tensor type
+torch::Tensor cpu_tensor = torch::randn({3, 4});
+torch::Tensor gpu_tensor = torch::randn({3, 4}, torch::device(torch::kCUDA));
+torch::Tensor int_tensor = torch::ones({3, 4}, torch::dtype(torch::kInt));
+```
+
+### Namespace Conventions
+
+- **`at::`** - ATen tensors (non-differentiable)
+- **`torch::`** - Differentiable tensors with autograd support
+
+<Note>
+Use `torch::` factory functions for tensors that need gradient tracking. Use `at::` when you only need tensor operations without autograd.
+</Note>
+
+## Creating Tensors
+
+### Factory Functions
+
+```cpp
+#include <torch/torch.h>
+
+// Create tensors with specific values
+torch::Tensor zeros = torch::zeros({2, 3});
+torch::Tensor ones = torch::ones({2, 3});
+torch::Tensor rand = torch::rand({2, 3});
+torch::Tensor randn = torch::randn({2, 3});
+
+// Create with specific dtype
+torch::Tensor int_tensor = torch::zeros({2, 3}, torch::dtype(torch::kInt32));
+torch::Tensor double_tensor = torch::ones({2, 3}, torch::dtype(torch::kDouble));
+
+// Create with specific device
+torch::Tensor cpu = torch::randn({2, 3}, torch::device(torch::kCPU));
+torch::Tensor gpu = torch::randn({2, 3}, torch::device(torch::kCUDA));
+
+// Create with all options
+auto options = torch::TensorOptions()
+    .dtype(torch::kFloat32)
+    .device(torch::kCUDA, 0)
+    .requires_grad(true);
+torch::Tensor t = torch::zeros({2, 3}, options);
+```
+
+### From Existing Data
+
+Create tensors from C++ arrays or vectors:
+
+```cpp
+#include <torch/torch.h>
+#include <vector>
+
+// From C array
+float data[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+torch::Tensor from_array = torch::from_blob(data, {2, 3});
+
+// From std::vector
+std::vector<float> vec = {1.0, 2.0, 3.0, 4.0};
+torch::Tensor from_vector = torch::from_blob(
+    vec.data(), 
+    {2, 2},
+    torch::TensorOptions().dtype(torch::kFloat32)
+);
+```
+
+<Warning>
+Tensors created with `from_blob()` do not own the underlying memory and cannot be resized. The caller must ensure the data remains valid for the tensor's lifetime.
+</Warning>
+
+### Sequential Tensors
+
+```cpp
+// Linear sequence
+torch::Tensor arange = torch::arange(0, 10);  // [0, 1, 2, ..., 9]
+torch::Tensor arange_step = torch::arange(0, 10, 2);  // [0, 2, 4, 6, 8]
+
+// Evenly spaced values
+torch::Tensor linspace = torch::linspace(0, 1, 5);  // [0.0, 0.25, 0.5, 0.75, 1.0]
+```
+
+## Tensor Operations
+
+### Arithmetic Operations
+
+```cpp
+torch::Tensor a = torch::randn({2, 3});
+torch::Tensor b = torch::randn({2, 3});
+
+// Element-wise operations
+torch::Tensor add = a + b;
+torch::Tensor sub = a - b;
+torch::Tensor mul = a * b;
+torch::Tensor div = a / b;
+
+// Scalar operations
+torch::Tensor scaled = a * 2.0;
+torch::Tensor shifted = a + 1.0;
+
+// In-place operations (modify tensor)
+a.add_(b);  // a = a + b
+a.mul_(2);  // a = a * 2
+```
+
+<Note>
+In-place operations are suffixed with `_` (underscore) and modify the tensor directly, which can be more memory efficient.
+</Note>
+
+### Mathematical Functions
+
+```cpp
+torch::Tensor x = torch::randn({2, 3});
+
+// Trigonometric
+torch::Tensor sin_x = torch::sin(x);
+torch::Tensor cos_x = torch::cos(x);
+torch::Tensor tan_x = torch::tan(x);
+
+// Exponential and logarithmic
+torch::Tensor exp_x = torch::exp(x);
+torch::Tensor log_x = torch::log(x);
+torch::Tensor sqrt_x = torch::sqrt(x);
+
+// Power operations
+torch::Tensor squared = torch::pow(x, 2);
+torch::Tensor x_to_y = torch::pow(x, torch::randn({2, 3}));
+
+// Activation functions
+torch::Tensor relu = torch::relu(x);
+torch::Tensor sigmoid = torch::sigmoid(x);
+torch::Tensor tanh = torch::tanh(x);
+```
+
+### Linear Algebra
+
+```cpp
+torch::Tensor A = torch::randn({3, 4});
+torch::Tensor B = torch::randn({4, 5});
+
+// Matrix multiplication
+torch::Tensor C = torch::mm(A, B);  // 3x5 matrix
+
+// Batched matrix multiplication
+torch::Tensor batch_a = torch::randn({10, 3, 4});
+torch::Tensor batch_b = torch::randn({10, 4, 5});
+torch::Tensor batch_c = torch::bmm(batch_a, batch_b);
+
+// Matrix-vector product
+torch::Tensor mat = torch::randn({3, 4});
+torch::Tensor vec = torch::randn({4});
+torch::Tensor result = torch::mv(mat, vec);
+
+// Transpose
+torch::Tensor At = A.t();  // Transpose 2D
+torch::Tensor permuted = A.transpose(0, 1);
+```
+
+### Reduction Operations
+
+```cpp
+torch::Tensor x = torch::randn({3, 4});
+
+// Reduce to scalar
+torch::Tensor sum_all = x.sum();
+torch::Tensor mean_all = x.mean();
+torch::Tensor max_all = x.max();
+torch::Tensor min_all = x.min();
+
+// Reduce along dimension
+torch::Tensor sum_dim0 = x.sum(0);  // Sum along rows -> shape [4]
+torch::Tensor mean_dim1 = x.mean(1);  // Mean along cols -> shape [3]
+
+// Keep dimensions
+torch::Tensor sum_keepdim = x.sum(0, /*keepdim=*/true);  // shape [1, 4]
+```
+
+## Indexing and Slicing
+
+### Basic Indexing
+
+```cpp
+torch::Tensor t = torch::randn({4, 5, 6});
+
+// Select single element (returns 0-d tensor)
+torch::Tensor elem = t[0][1][2];
+
+// Select dimension
+torch::Tensor row = t[0];  // shape [5, 6]
+
+// Slice with index_select
+torch::Tensor indices = torch::tensor({0, 2});
+torch::Tensor selected = t.index_select(0, indices);
+```
+
+### Advanced Indexing
+
+```cpp
+using torch::indexing::Slice;
+using torch::indexing::None;
+using torch::indexing::Ellipsis;
+
+torch::Tensor t = torch::randn({4, 5, 6});
+
+// Slice notation
+torch::Tensor slice1 = t.index({Slice(0, 2)});  // t[0:2]
+torch::Tensor slice2 = t.index({Slice(), Slice(1, 4)});  // t[:, 1:4]
+torch::Tensor slice3 = t.index({0, Slice(None, None, 2)});  // t[0, ::2]
+
+// Boolean masking
+torch::Tensor mask = t > 0;
+torch::Tensor positive = t.masked_select(mask);
+```
+
+## Reshaping and Manipulating Tensors
+
+### Shape Operations
+
+```cpp
+torch::Tensor x = torch::randn({2, 3, 4});
+
+// Reshape (must maintain number of elements)
+torch::Tensor reshaped = x.reshape({6, 4});
+torch::Tensor viewed = x.view({-1, 4});  // -1 infers dimension
+
+// Flatten
+torch::Tensor flat = x.flatten();
+torch::Tensor flat_dim = x.flatten(1);  // Flatten from dim 1
+
+// Squeeze and unsqueeze
+torch::Tensor squeezed = torch::randn({1, 3, 1}).squeeze();  // shape [3]
+torch::Tensor unsqueezed = torch::randn({3}).unsqueeze(0);  // shape [1, 3]
+
+// Permute dimensions
+torch::Tensor permuted = x.permute({2, 0, 1});  // {4, 2, 3}
+```
+
+### Concatenation and Splitting
+
+```cpp
+torch::Tensor a = torch::randn({2, 3});
+torch::Tensor b = torch::randn({2, 3});
+torch::Tensor c = torch::randn({2, 3});
+
+// Concatenate
+torch::Tensor cat_dim0 = torch::cat({a, b, c}, 0);  // shape [6, 3]
+torch::Tensor cat_dim1 = torch::cat({a, b, c}, 1);  // shape [2, 9]
+
+// Stack (creates new dimension)
+torch::Tensor stacked = torch::stack({a, b, c}, 0);  // shape [3, 2, 3]
+
+// Split
+auto chunks = torch::chunk(cat_dim0, 3, 0);  // Split into 3 chunks
+auto splits = torch::split(cat_dim1, 3, 1);  // Split with size 3
+```
+
+## Efficient Element Access
+
+### CPU Accessors
+
+For efficient element-wise access on CPU tensors, use accessors:
+
+```cpp
+torch::Tensor foo = torch::rand({12, 12});
+
+// Create accessor with compile-time type and dimension checks
+auto foo_a = foo.accessor<float, 2>();
+
+float trace = 0;
+for (int i = 0; i < foo_a.size(0); i++) {
+  trace += foo_a[i][i];  // Efficient element access
+}
+```
+
+<Warning>
+Accessors are temporary views and are only valid for the tensor's lifetime. Use them locally within a function, like iterators.
+</Warning>
+
+### CUDA Packed Accessors
+
+For CUDA kernels, use packed accessors:
+
+```cpp
+__global__ void packed_accessor_kernel(
+    torch::PackedTensorAccessor64<float, 2> foo,
+    float* trace) {
+  int i = threadIdx.x;
+  gpuAtomicAdd(trace, foo[i][i]);
+}
+
+torch::Tensor foo = torch::rand({12, 12}, torch::device(torch::kCUDA));
+auto foo_a = foo.packed_accessor64<float, 2>();
+
+float trace = 0;
+packed_accessor_kernel<<<1, 12>>>(foo_a, &trace);
+```
+
+<Note>
+`PackedTensorAccessor32` uses 32-bit indexing (faster but may overflow). `PackedTensorAccessor64` uses 64-bit indexing (safer for large tensors).
+</Note>
+
+## Tensor Attributes
+
+### Querying Tensor Properties
+
+```cpp
+torch::Tensor t = torch::randn({2, 3, 4}, torch::device(torch::kCUDA));
+
+// Shape and size
+auto sizes = t.sizes();  // {2, 3, 4}
+int64_t dim0 = t.size(0);  // 2
+int64_t ndim = t.dim();  // 3
+int64_t numel = t.numel();  // 24 (total elements)
+
+// Data type
+auto dtype = t.dtype();  // torch::kFloat32
+bool is_float = t.scalar_type() == torch::kFloat;
+
+// Device
+auto device = t.device();  // CUDA:0
+bool is_cuda = t.is_cuda();
+bool is_cpu = t.device().is_cpu();
+
+// Other properties
+bool is_contiguous = t.is_contiguous();
+auto strides = t.strides();
+```
+
+## Type Conversions
+
+### Converting Data Types
+
+```cpp
+torch::Tensor x = torch::randn({2, 3});
+
+// Convert dtype
+torch::Tensor x_int = x.to(torch::kInt32);
+torch::Tensor x_double = x.to(torch::kFloat64);
+torch::Tensor x_byte = x.to(torch::kUInt8);
+
+// Convert device
+torch::Tensor x_gpu = x.to(torch::device(torch::kCUDA));
+torch::Tensor x_cpu = x_gpu.to(torch::device(torch::kCPU));
+
+// Convert both
+torch::Tensor converted = x.to(
+    torch::TensorOptions()
+        .dtype(torch::kInt32)
+        .device(torch::kCUDA)
+);
+```
+
+### Scalar Conversion
+
+```cpp
+torch::Tensor scalar_tensor = torch::tensor(3.14);
+
+// Extract scalar value
+float value = scalar_tensor.item<float>();
+double value_d = scalar_tensor.item<double>();
+int value_i = scalar_tensor.to(torch::kInt).item<int>();
+```
+
+## Scalars
+
+ATen includes a `Scalar` type for single values with dynamic typing:
+
+```cpp
+#include <torch/torch.h>
+
+// Scalars are implicitly constructed from C++ types
+torch::Scalar a = 1.0;
+torch::Scalar b = 42;
+
+// Used in operations
+torch::Tensor t = torch::randn({2, 2});
+torch::Tensor scaled = t * 2.0;  // Scalar multiplication
+
+// Some functions return Scalars
+torch::Tensor data = torch::randn({3, 4});
+torch::Scalar sum_scalar = data.sum();  // Returns Scalar
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Use the Right Namespace">
+    Use `torch::` for differentiable tensors, `at::` for non-differentiable operations.
+  </Step>
+  
+  <Step title="Prefer In-Place Operations">
+    When memory is a concern, use in-place operations (suffixed with `_`).
+  </Step>
+  
+  <Step title="Use Accessors for Element-Wise Access">
+    For loops over tensor elements, use accessors instead of repeated indexing.
+  </Step>
+  
+  <Step title="Be Careful with from_blob">
+    Ensure external data outlives tensors created with `from_blob()`.
+  </Step>
+  
+  <Step title="Check Device Compatibility">
+    Ensure all tensors in an operation are on the same device.
+  </Step>
+</Steps>
+
+## Next Steps
+
+- [Autograd API](/cpp/autograd) - Enable automatic differentiation
+- [Module API](/cpp/modules) - Build neural network models
+- [Official ATen Documentation](https://pytorch.org/cppdocs/api/namespace_at.html)

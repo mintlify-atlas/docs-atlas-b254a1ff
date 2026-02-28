@@ -1,0 +1,471 @@
+---
+title: 'torch.optim - Optimizers'
+description: 'Optimization algorithms for training neural networks'
+---
+
+## Overview
+
+The `torch.optim` package provides implementations of various optimization algorithms commonly used for training neural networks. All optimizers inherit from `torch.optim.Optimizer` and implement the `step()` method to update parameters.
+
+## Basic Usage
+
+```python
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+model = nn.Linear(10, 1)
+optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+
+# Training loop
+for input, target in dataset:
+    optimizer.zero_grad()
+    output = model(input)
+    loss = loss_fn(output, target)
+    loss.backward()
+    optimizer.step()
+```
+
+---
+
+## SGD
+
+Stochastic Gradient Descent optimizer with optional momentum.
+
+```python
+torch.optim.SGD(params, lr=1e-3, momentum=0, dampening=0, 
+                weight_decay=0, nesterov=False)
+```
+
+### Parameters
+
+<ParamField path="params" type="iterable" required>
+  Iterable of parameters to optimize or dicts defining parameter groups
+</ParamField>
+
+<ParamField path="lr" type="float | Tensor" default="1e-3">
+  Learning rate
+</ParamField>
+
+<ParamField path="momentum" type="float" default="0">
+  Momentum factor. Accelerates SGD in the relevant direction and dampens oscillations
+</ParamField>
+
+<ParamField path="dampening" type="float" default="0">
+  Dampening for momentum. Used to reduce the momentum's contribution to velocity
+</ParamField>
+
+<ParamField path="weight_decay" type="float" default="0">
+  Weight decay (L2 penalty) coefficient
+</ParamField>
+
+<ParamField path="nesterov" type="bool" default="False">
+  Whether to use Nesterov momentum. Only applicable when momentum is non-zero
+</ParamField>
+
+<ParamField path="maximize" type="bool" default="False">
+  Maximize the objective with respect to the params, instead of minimizing
+</ParamField>
+
+<ParamField path="foreach" type="bool | None" default="None">
+  Whether to use the foreach (multi-tensor) implementation. Faster for many small tensors
+</ParamField>
+
+<ParamField path="differentiable" type="bool" default="False">
+  Whether autograd should occur through the optimizer step. Enables higher-order gradients
+</ParamField>
+
+<ParamField path="fused" type="bool | None" default="None">
+  Whether to use a fused kernel implementation. Generally faster on CUDA
+</ParamField>
+
+### Example
+
+```python
+optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+optimizer.zero_grad()
+loss_fn(model(input), target).backward()
+optimizer.step()
+```
+
+### Algorithm
+
+The update rule with momentum:
+
+```
+v_t+1 = momentum * v_t + (1 - dampening) * g_t+1
+p_t+1 = p_t - lr * v_t+1
+```
+
+With Nesterov momentum:
+```
+v_t+1 = momentum * v_t + (1 - dampening) * g_t+1  
+p_t+1 = p_t - lr * (g_t+1 + momentum * v_t+1)
+```
+
+---
+
+## Adam
+
+Adaptive Moment Estimation optimizer.
+
+```python
+torch.optim.Adam(params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
+                 weight_decay=0, amsgrad=False)
+```
+
+### Parameters
+
+<ParamField path="params" type="iterable" required>
+  Iterable of parameters to optimize or dicts defining parameter groups
+</ParamField>
+
+<ParamField path="lr" type="float | Tensor" default="1e-3">
+  Learning rate. Tensor LR requires `fused=True` or `capturable=True`
+</ParamField>
+
+<ParamField path="betas" type="tuple[float, float]" default="(0.9, 0.999)">
+  Coefficients (beta1, beta2) for computing running averages of gradient and its square
+</ParamField>
+
+<ParamField path="eps" type="float" default="1e-8">
+  Term added to denominator to improve numerical stability
+</ParamField>
+
+<ParamField path="weight_decay" type="float" default="0">
+  Weight decay (L2 penalty) coefficient
+</ParamField>
+
+<ParamField path="amsgrad" type="bool" default="False">
+  Whether to use the AMSGrad variant from "On the Convergence of Adam and Beyond"
+</ParamField>
+
+<ParamField path="foreach" type="bool | None" default="None">
+  Whether to use the foreach (multi-tensor) implementation
+</ParamField>
+
+<ParamField path="maximize" type="bool" default="False">
+  Maximize the objective instead of minimizing
+</ParamField>
+
+<ParamField path="capturable" type="bool" default="False">
+  Whether this optimizer can be safely captured in a CUDA graph
+</ParamField>
+
+<ParamField path="differentiable" type="bool" default="False">
+  Whether autograd should occur through the optimizer step
+</ParamField>
+
+<ParamField path="fused" type="bool | None" default="None">
+  Whether to use a fused kernel implementation
+</ParamField>
+
+<ParamField path="decoupled_weight_decay" type="bool" default="False">
+  If True, this optimizer is equivalent to AdamW
+</ParamField>
+
+### Example
+
+```python
+optimizer = optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.999))
+optimizer.zero_grad()
+loss_fn(model(input), target).backward()
+optimizer.step()
+```
+
+### Algorithm
+
+```
+m_t = beta1 * m_t-1 + (1 - beta1) * g_t
+v_t = beta2 * v_t-1 + (1 - beta2) * g_t^2
+m_hat_t = m_t / (1 - beta1^t)
+v_hat_t = v_t / (1 - beta2^t)
+p_t = p_t-1 - lr * m_hat_t / (sqrt(v_hat_t) + eps)
+```
+
+---
+
+## AdamW
+
+Adam with decoupled weight decay regularization.
+
+```python
+torch.optim.AdamW(params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
+                  weight_decay=1e-2, amsgrad=False)
+```
+
+### Parameters
+
+<ParamField path="params" type="iterable" required>
+  Iterable of parameters to optimize or dicts defining parameter groups
+</ParamField>
+
+<ParamField path="lr" type="float | Tensor" default="1e-3">
+  Learning rate
+</ParamField>
+
+<ParamField path="betas" type="tuple[float, float]" default="(0.9, 0.999)">
+  Coefficients for computing running averages of gradient and its square
+</ParamField>
+
+<ParamField path="eps" type="float" default="1e-8">
+  Term added to denominator for numerical stability
+</ParamField>
+
+<ParamField path="weight_decay" type="float" default="1e-2">
+  Weight decay coefficient (decoupled from gradient-based update)
+</ParamField>
+
+<ParamField path="amsgrad" type="bool" default="False">
+  Whether to use the AMSGrad variant
+</ParamField>
+
+### Example
+
+```python
+optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.01)
+```
+
+### Key Difference from Adam
+
+AdamW decouples weight decay from the gradient-based update:
+
+```
+# AdamW
+p_t = p_t-1 - lr * weight_decay * p_t-1  # Weight decay
+p_t = p_t - lr * m_hat_t / (sqrt(v_hat_t) + eps)  # Adam update
+
+# Adam (coupled)
+g_t = g_t + weight_decay * p_t-1  # Add to gradient
+```
+
+---
+
+## RMSprop
+
+Root Mean Square Propagation optimizer.
+
+```python
+torch.optim.RMSprop(params, lr=1e-2, alpha=0.99, eps=1e-8,
+                    weight_decay=0, momentum=0, centered=False)
+```
+
+### Parameters
+
+<ParamField path="params" type="iterable" required>
+  Iterable of parameters to optimize or dicts defining parameter groups
+</ParamField>
+
+<ParamField path="lr" type="float | Tensor" default="1e-2">
+  Learning rate
+</ParamField>
+
+<ParamField path="alpha" type="float" default="0.99">
+  Smoothing constant for squared gradient moving average
+</ParamField>
+
+<ParamField path="eps" type="float" default="1e-8">
+  Term added to denominator for numerical stability
+</ParamField>
+
+<ParamField path="weight_decay" type="float" default="0">
+  Weight decay (L2 penalty) coefficient
+</ParamField>
+
+<ParamField path="momentum" type="float" default="0">
+  Momentum factor
+</ParamField>
+
+<ParamField path="centered" type="bool" default="False">
+  If True, compute centered RMSProp (gradient normalized by variance estimate)
+</ParamField>
+
+### Example
+
+```python
+optimizer = optim.RMSprop(model.parameters(), lr=0.01, alpha=0.99)
+```
+
+---
+
+## Adagrad
+
+Adaptive Gradient Algorithm optimizer.
+
+```python
+torch.optim.Adagrad(params, lr=1e-2, lr_decay=0, weight_decay=0,
+                    initial_accumulator_value=0, eps=1e-10)
+```
+
+### Parameters
+
+<ParamField path="params" type="iterable" required>
+  Iterable of parameters to optimize or dicts defining parameter groups
+</ParamField>
+
+<ParamField path="lr" type="float | Tensor" default="1e-2">
+  Learning rate
+</ParamField>
+
+<ParamField path="lr_decay" type="float" default="0">
+  Learning rate decay
+</ParamField>
+
+<ParamField path="weight_decay" type="float" default="0">
+  Weight decay (L2 penalty) coefficient
+</ParamField>
+
+<ParamField path="initial_accumulator_value" type="float" default="0">
+  Initial value for the gradient accumulator
+</ParamField>
+
+<ParamField path="eps" type="float" default="1e-10">
+  Term added to denominator for numerical stability
+</ParamField>
+
+### Example
+
+```python
+optimizer = optim.Adagrad(model.parameters(), lr=0.01)
+```
+
+---
+
+## Other Optimizers
+
+<Accordion title="Adadelta">
+An adaptive learning rate method that uses running averages of squared gradients.
+
+```python
+torch.optim.Adadelta(params, lr=1.0, rho=0.9, eps=1e-6, weight_decay=0)
+```
+</Accordion>
+
+<Accordion title="Adamax">
+Variant of Adam based on infinity norm.
+
+```python
+torch.optim.Adamax(params, lr=2e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0)
+```
+</Accordion>
+
+<Accordion title="ASGD">
+Averaged Stochastic Gradient Descent.
+
+```python
+torch.optim.ASGD(params, lr=1e-2, lambd=1e-4, alpha=0.75, t0=1e6, weight_decay=0)
+```
+</Accordion>
+
+<Accordion title="LBFGS">
+Limited-memory BFGS algorithm (quasi-Newton method).
+
+```python
+torch.optim.LBFGS(params, lr=1, max_iter=20, max_eval=None, tolerance_grad=1e-7,
+                  tolerance_change=1e-9, history_size=100, line_search_fn=None)
+```
+</Accordion>
+
+<Accordion title="NAdam">
+Nesterov-accelerated Adam.
+
+```python
+torch.optim.NAdam(params, lr=2e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0,
+                  momentum_decay=4e-3)
+```
+</Accordion>
+
+<Accordion title="RAdam">
+Rectified Adam.
+
+```python
+torch.optim.RAdam(params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0)
+```
+</Accordion>
+
+<Accordion title="Rprop">
+Resilient Backpropagation.
+
+```python
+torch.optim.Rprop(params, lr=1e-2, etas=(0.5, 1.2), step_sizes=(1e-6, 50))
+```
+</Accordion>
+
+<Accordion title="SparseAdam">
+Lazy version of Adam for sparse tensors.
+
+```python
+torch.optim.SparseAdam(params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8)
+```
+</Accordion>
+
+---
+
+## Optimizer Methods
+
+All optimizers implement the following methods:
+
+### step()
+
+```python
+optimizer.step(closure=None)
+```
+
+Performs a single optimization step.
+
+<ParamField path="closure" type="callable" optional>
+  A closure that reevaluates the model and returns the loss. Required for some optimizers like LBFGS
+</ParamField>
+
+### zero_grad()
+
+```python
+optimizer.zero_grad(set_to_none=False)
+```
+
+Clears the gradients of all optimized parameters.
+
+<ParamField path="set_to_none" type="bool" default="False">
+  If True, sets gradients to None instead of zero. More memory efficient
+</ParamField>
+
+### state_dict()
+
+```python
+state_dict = optimizer.state_dict()
+```
+
+Returns the state of the optimizer as a dict.
+
+### load_state_dict()
+
+```python
+optimizer.load_state_dict(state_dict)
+```
+
+Loads the optimizer state.
+
+---
+
+## Parameter Groups
+
+Optimizers can handle different learning rates and options for different parameter groups:
+
+```python
+optimizer = optim.SGD([
+    {'params': model.base.parameters()},
+    {'params': model.classifier.parameters(), 'lr': 1e-3}
+], lr=1e-2, momentum=0.9)
+```
+
+In this example:
+- `model.base` parameters use `lr=1e-2`
+- `model.classifier` parameters use `lr=1e-3`
+- Both use `momentum=0.9`
+
+---
+
+## See Also
+
+- [Learning Rate Schedulers](/api/lr-scheduler) - Adjust learning rates during training
+- [Optimizer Tutorial](https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html)

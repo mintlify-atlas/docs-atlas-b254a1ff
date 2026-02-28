@@ -1,80 +1,505 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get started with PyTorch through hands-on examples of tensors and neural networks
 ---
 
-## Get started in three steps
+# Quick Start Guide
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This guide will walk you through PyTorch basics with practical examples. You'll learn about tensors, automatic differentiation, and building a simple neural network.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  Make sure you have [installed PyTorch](/installation) before following this guide.
 </Note>
+
+## Working with Tensors
+
+Tensors are the fundamental data structure in PyTorch, similar to NumPy arrays but with GPU acceleration support.
+
+### Creating Tensors
+
+<Steps>
+  <Step title="Import PyTorch">
+    First, import the torch package:
+    
+    ```python
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    ```
+  </Step>
+  
+  <Step title="Create basic tensors">
+    You can create tensors in multiple ways:
+    
+    ```python
+    # Create a tensor from data
+    data = [[1, 2], [3, 4]]
+    x_data = torch.tensor(data)
+    print(f"Tensor from data:\n{x_data}")
+    # Output:
+    # tensor([[1, 2],
+    #         [3, 4]])
+    
+    # Create random tensors
+    x_rand = torch.rand(2, 3)  # Uniform distribution [0, 1)
+    print(f"Random tensor:\n{x_rand}")
+    
+    x_randn = torch.randn(2, 3)  # Normal distribution (mean=0, std=1)
+    print(f"Normal tensor:\n{x_randn}")
+    
+    # Create tensors with specific values
+    x_zeros = torch.zeros(2, 3)
+    x_ones = torch.ones(2, 3)
+    print(f"Zeros:\n{x_zeros}")
+    print(f"Ones:\n{x_ones}")
+    ```
+  </Step>
+  
+  <Step title="Tensor properties">
+    Tensors have attributes describing their shape, datatype, and device:
+    
+    ```python
+    x = torch.rand(3, 4)
+    
+    print(f"Shape: {x.shape}")           # Shape: torch.Size([3, 4])
+    print(f"Datatype: {x.dtype}")        # Datatype: torch.float32
+    print(f"Device: {x.device}")         # Device: cpu
+    print(f"Requires grad: {x.requires_grad}")  # Requires grad: False
+    ```
+  </Step>
+</Steps>
+
+### Tensor Operations
+
+PyTorch supports a wide variety of tensor operations:
+
+<CodeGroup>
+
+```python Basic Operations
+# Arithmetic operations
+a = torch.tensor([1.0, 2.0, 3.0])
+b = torch.tensor([4.0, 5.0, 6.0])
+
+print(f"Addition: {a + b}")        # tensor([5., 7., 9.])
+print(f"Multiplication: {a * b}")  # tensor([4., 10., 18.])
+print(f"Matrix multiply: {a @ b}") # tensor(32.) (dot product)
+
+# Element-wise operations
+print(f"Square: {torch.square(a)}")
+print(f"Sqrt: {torch.sqrt(a)}")
+print(f"Exp: {torch.exp(a)}")
+```
+
+```python Matrix Operations
+# Matrix multiplication
+A = torch.randn(3, 4)
+B = torch.randn(4, 2)
+C = torch.matmul(A, B)  # or A @ B
+print(f"Matrix multiply shape: {C.shape}")  # torch.Size([3, 2])
+
+# Transposition
+A_t = A.T  # or torch.transpose(A, 0, 1)
+print(f"Transpose shape: {A_t.shape}")  # torch.Size([4, 3])
+
+# Stacking tensors
+x = torch.tensor([1, 2, 3])
+y = torch.tensor([4, 5, 6])
+stacked = torch.stack([x, y])
+print(f"Stacked:\n{stacked}")
+# tensor([[1, 2, 3],
+#         [4, 5, 6]])
+```
+
+```python Indexing & Slicing
+x = torch.randn(4, 5)
+
+# Indexing
+print(f"First row: {x[0]}")
+print(f"First column: {x[:, 0]}")
+print(f"Element at [1, 2]: {x[1, 2]}")
+
+# Slicing
+print(f"First 2 rows:\n{x[:2]}")
+print(f"Last 3 columns:\n{x[:, -3:]}")
+
+# Boolean indexing
+mask = x > 0
+positive_values = x[mask]
+print(f"Positive values: {positive_values}")
+```
+
+```python Reshaping
+x = torch.randn(2, 3, 4)
+
+# Reshape to different dimensions
+y = x.view(6, 4)  # Must have same number of elements
+z = x.reshape(8, 3)  # More flexible, may copy data
+
+print(f"Original shape: {x.shape}")  # torch.Size([2, 3, 4])
+print(f"View shape: {y.shape}")      # torch.Size([6, 4])
+print(f"Reshape shape: {z.shape}")   # torch.Size([8, 3])
+
+# Flatten tensor
+flat = x.flatten()
+print(f"Flattened shape: {flat.shape}")  # torch.Size([24])
+
+# Add/remove dimensions
+x_unsqueezed = x.unsqueeze(0)  # Add dimension at position 0
+print(f"Unsqueezed shape: {x_unsqueezed.shape}")  # torch.Size([1, 2, 3, 4])
+```
+
+</CodeGroup>
+
+### GPU Acceleration
+
+<Tip>
+  PyTorch tensors can be moved to GPU for faster computation. All operations on GPU tensors are accelerated.
+</Tip>
+
+```python
+# Check if CUDA is available
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+    print(f"Using GPU: {torch.cuda.get_device_name(0)}")
+else:
+    device = torch.device("cpu")
+    print("Using CPU")
+
+# Create tensor directly on GPU
+x = torch.rand(3, 3, device=device)
+
+# Or move existing tensor to GPU
+y = torch.rand(3, 3)
+y = y.to(device)
+
+# Operations are performed on GPU
+z = x + y
+
+# Move back to CPU for numpy conversion
+z_cpu = z.to("cpu")
+z_numpy = z_cpu.numpy()
+print(f"Result on CPU:\n{z_numpy}")
+```
+
+## Automatic Differentiation
+
+PyTorch's autograd system automatically computes gradients for tensor operations, which is essential for training neural networks.
+
+<Steps>
+  <Step title="Enable gradient tracking">
+    Set `requires_grad=True` to track computations:
+    
+    ```python
+    # Create tensors that require gradients
+    x = torch.tensor([2.0, 3.0], requires_grad=True)
+    w = torch.tensor([1.0, 2.0], requires_grad=True)
+    b = torch.tensor([0.5], requires_grad=True)
+    
+    print(f"x requires grad: {x.requires_grad}")
+    print(f"w requires grad: {w.requires_grad}")
+    ```
+  </Step>
+  
+  <Step title="Perform operations">
+    All operations are recorded in the computational graph:
+    
+    ```python
+    # Forward pass: compute y = w·x + b
+    y = torch.dot(w, x) + b
+    print(f"Output y: {y}")  # tensor([8.5000], grad_fn=<AddBackward0>)
+    
+    # Apply non-linearity
+    z = torch.relu(y)
+    print(f"After ReLU z: {z}")
+    ```
+  </Step>
+  
+  <Step title="Compute gradients">
+    Call `.backward()` to compute gradients:
+    
+    ```python
+    # Compute gradients
+    z.backward()
+    
+    # Access gradients
+    print(f"Gradient dz/dx: {x.grad}")  # tensor([1., 2.])
+    print(f"Gradient dz/dw: {w.grad}")  # tensor([2., 3.])
+    print(f"Gradient dz/db: {b.grad}")  # tensor([1.])
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Gradients accumulate by default. Always call `.zero_grad()` before computing new gradients in training loops.
+</Warning>
+
+```python
+# Example of gradient accumulation
+x = torch.tensor([1.0], requires_grad=True)
+
+for i in range(3):
+    y = x ** 2
+    y.backward()
+    print(f"Iteration {i+1}, gradient: {x.grad}")  # Accumulates!
+    
+    # Clear gradients for next iteration
+    x.grad.zero_()
+```
+
+## Building a Neural Network
+
+Let's build a simple feedforward neural network for classification.
+
+### Define the Model
+
+<Steps>
+  <Step title="Create a neural network class">
+    Define your model by subclassing `nn.Module`:
+    
+    ```python
+    import torch.nn as nn
+    import torch.nn.functional as F
+    
+    class SimpleNet(nn.Module):
+        def __init__(self, input_size, hidden_size, num_classes):
+            super(SimpleNet, self).__init__()
+            # Define layers
+            self.fc1 = nn.Linear(input_size, hidden_size)
+            self.fc2 = nn.Linear(hidden_size, hidden_size)
+            self.fc3 = nn.Linear(hidden_size, num_classes)
+            
+        def forward(self, x):
+            # Forward pass through the network
+            x = F.relu(self.fc1(x))
+            x = F.relu(self.fc2(x))
+            x = self.fc3(x)  # No activation on final layer for logits
+            return x
+    
+    # Create model instance
+    input_size = 784  # e.g., 28x28 images flattened
+    hidden_size = 128
+    num_classes = 10  # e.g., digits 0-9
+    
+    model = SimpleNet(input_size, hidden_size, num_classes)
+    print(model)
+    ```
+    
+    Output:
+    ```
+    SimpleNet(
+      (fc1): Linear(in_features=784, out_features=128, bias=True)
+      (fc2): Linear(in_features=128, out_features=128, bias=True)
+      (fc3): Linear(in_features=128, out_features=10, bias=True)
+    )
+    ```
+  </Step>
+  
+  <Step title="Inspect model parameters">
+    View the learnable parameters:
+    
+    ```python
+    # Count parameters
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    
+    print(f"Total parameters: {total_params:,}")
+    print(f"Trainable parameters: {trainable_params:,}")
+    
+    # View layer weights and biases
+    for name, param in model.named_parameters():
+        print(f"{name}: {param.shape}")
+    ```
+    
+    Output:
+    ```
+    Total parameters: 118,282
+    Trainable parameters: 118,282
+    fc1.weight: torch.Size([128, 784])
+    fc1.bias: torch.Size([128])
+    fc2.weight: torch.Size([128, 128])
+    fc2.bias: torch.Size([128])
+    fc3.weight: torch.Size([10, 128])
+    fc3.bias: torch.Size([10])
+    ```
+  </Step>
+</Steps>
+
+### Training Loop
+
+Here's a complete training example:
+
+```python
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Create synthetic dataset
+batch_size = 32
+num_samples = 1000
+
+X_train = torch.randn(num_samples, input_size)
+y_train = torch.randint(0, num_classes, (num_samples,))
+
+# Initialize model, loss function, and optimizer
+model = SimpleNet(input_size, hidden_size, num_classes)
+criterion = nn.CrossEntropyLoss()  # For classification
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# Training loop
+num_epochs = 10
+
+for epoch in range(num_epochs):
+    # Set model to training mode
+    model.train()
+    
+    # Mini-batch training
+    for i in range(0, num_samples, batch_size):
+        # Get batch
+        batch_X = X_train[i:i+batch_size]
+        batch_y = y_train[i:i+batch_size]
+        
+        # Forward pass
+        outputs = model(batch_X)
+        loss = criterion(outputs, batch_y)
+        
+        # Backward pass and optimization
+        optimizer.zero_grad()  # Clear gradients
+        loss.backward()        # Compute gradients
+        optimizer.step()       # Update weights
+    
+    # Print progress
+    print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
+
+print("Training complete!")
+```
+
+### Making Predictions
+
+<CodeGroup>
+
+```python Inference
+# Set model to evaluation mode
+model.eval()
+
+# Create test data
+X_test = torch.randn(5, input_size)
+
+# Make predictions (no gradient computation needed)
+with torch.no_grad():
+    logits = model(X_test)
+    probabilities = F.softmax(logits, dim=1)
+    predictions = torch.argmax(probabilities, dim=1)
+
+print(f"Predictions: {predictions}")
+print(f"Probabilities:\n{probabilities}")
+```
+
+```python Save Model
+# Save model state
+torch.save(model.state_dict(), 'simple_net.pth')
+print("Model saved!")
+
+# Load model state
+model = SimpleNet(input_size, hidden_size, num_classes)
+model.load_state_dict(torch.load('simple_net.pth'))
+model.eval()
+print("Model loaded!")
+```
+
+```python Save Full Model
+# Save entire model (architecture + weights)
+torch.save(model, 'simple_net_full.pth')
+
+# Load entire model
+loaded_model = torch.load('simple_net_full.pth')
+loaded_model.eval()
+print("Full model loaded!")
+```
+
+</CodeGroup>
+
+## Model Architectures
+
+PyTorch provides common layers for building different types of networks:
+
+<CardGroup cols={2}>
+  <Card title="Fully Connected" icon="diagram-project">
+    ```python
+    nn.Linear(in_features, out_features)
+    ```
+    Basic feedforward layer for MLPs
+  </Card>
+  
+  <Card title="Convolutional" icon="grid">
+    ```python
+    nn.Conv2d(in_channels, out_channels, kernel_size)
+    ```
+    For image processing and CNNs
+  </Card>
+  
+  <Card title="Recurrent" icon="arrows-repeat">
+    ```python
+    nn.LSTM(input_size, hidden_size)
+    nn.GRU(input_size, hidden_size)
+    ```
+    For sequential data and time series
+  </Card>
+  
+  <Card title="Attention" icon="bullseye">
+    ```python
+    nn.MultiheadAttention(embed_dim, num_heads)
+    ```
+    For transformers and attention mechanisms
+  </Card>
+</CardGroup>
+
+### Common Activation Functions
+
+Available in `torch.nn` and `torch.nn.functional`:
+
+```python
+# Activation functions
+F.relu(x)        # Rectified Linear Unit
+F.gelu(x)        # Gaussian Error Linear Unit
+F.sigmoid(x)     # Sigmoid
+F.tanh(x)        # Hyperbolic Tangent
+F.softmax(x, dim=1)  # Softmax (for probabilities)
+F.log_softmax(x, dim=1)  # Log Softmax (numerically stable)
+
+# As layers
+nn.ReLU()
+nn.GELU()
+nn.Sigmoid()
+nn.Tanh()
+nn.Softmax(dim=1)
+```
+
+## Next Steps
+
+Congratulations! You've learned the basics of PyTorch. Here's what to explore next:
+
+<CardGroup cols={2}>
+  <Card title="Tutorials" icon="book" href="https://pytorch.org/tutorials/">
+    Official PyTorch tutorials covering computer vision, NLP, and more
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="https://pytorch.org/docs/">
+    Complete API documentation for all PyTorch modules
+  </Card>
+  
+  <Card title="Examples" icon="flask" href="https://github.com/pytorch/examples">
+    Production-ready example implementations
+  </Card>
+  
+  <Card title="Forums" icon="comments" href="https://discuss.pytorch.org">
+    Get help from the PyTorch community
+  </Card>
+</CardGroup>
+
+<Tip>
+  **Performance Tips:**
+  - Use GPU acceleration with `.to(device)` or `.cuda()`
+  - Enable mixed precision training with `torch.cuda.amp` for faster training
+  - Use `torch.jit.script()` or `torch.jit.trace()` to compile models for production
+  - Profile your code with `torch.profiler` to identify bottlenecks
+</Tip>

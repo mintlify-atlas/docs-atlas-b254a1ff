@@ -1,0 +1,471 @@
+---
+title: Automatic Differentiation
+description: Understand PyTorch's autograd system for automatic gradient computation
+---
+
+# Automatic Differentiation with Autograd
+
+PyTorch's `autograd` package provides automatic differentiation for all operations on tensors. This is the foundation of training neural networks using backpropagation.
+
+## What is Autograd?
+
+`torch.autograd` automatically computes gradients (derivatives) of tensor operations. When you perform operations on tensors with `requires_grad=True`, PyTorch builds a computational graph and can automatically compute gradients via backpropagation.
+
+<Note>
+Autograd is a **define-by-run** framework: the computational graph is built dynamically as operations execute. This makes it easy to use control flow (if statements, loops) in your models.
+</Note>
+
+## Enabling Gradient Tracking
+
+### Basic Usage
+
+```python
+import torch
+
+# Create a tensor and enable gradient tracking
+x = torch.tensor([2.0, 3.0], requires_grad=True)
+
+print(x.requires_grad)  # True
+
+# Operations are tracked
+y = x ** 2
+z = y.sum()
+
+print(y.requires_grad)  # True
+print(z.requires_grad)  # True
+```
+
+### When to Use requires_grad
+
+<Tabs>
+  <Tab title="Training">
+    ```python
+    import torch
+    import torch.nn as nn
+    
+    # Model parameters require gradients
+    model = nn.Linear(10, 5)
+    for param in model.parameters():
+        print(param.requires_grad)  # True
+    
+    # Input data typically doesn't need gradients
+    x = torch.randn(32, 10)  # requires_grad=False by default
+    
+    # Forward pass
+    output = model(x)  # output.requires_grad=True
+    ```
+  </Tab>
+  
+  <Tab title="Inference">
+    ```python
+    import torch
+    import torch.nn as nn
+    
+    model = nn.Linear(10, 5)
+    x = torch.randn(32, 10)
+    
+    # Disable gradient tracking for inference
+    with torch.no_grad():
+        output = model(x)
+        print(output.requires_grad)  # False
+    
+    # Or use inference_mode (faster)
+    with torch.inference_mode():
+        output = model(x)
+    ```
+  </Tab>
+</Tabs>
+
+## Computing Gradients
+
+### The backward() Method
+
+The `.backward()` method computes gradients automatically:
+
+```python
+import torch
+
+# Create tensors
+x = torch.tensor([3.0], requires_grad=True)
+w = torch.tensor([2.0], requires_grad=True)
+b = torch.tensor([1.0], requires_grad=True)
+
+# Forward pass: y = w * x + b
+y = w * x + b  # y = 2 * 3 + 1 = 7
+
+# Compute gradients
+y.backward()
+
+# Access gradients
+print(x.grad)  # dy/dx = w = 2.0
+print(w.grad)  # dy/dw = x = 3.0
+print(b.grad)  # dy/db = 1 = 1.0
+```
+
+### Multiple Backward Passes
+
+<Note>
+By default, gradients accumulate. Clear them with `.zero_()` between iterations:
+</Note>
+
+```python
+import torch
+
+x = torch.tensor([2.0], requires_grad=True)
+
+for i in range(3):
+    y = x ** 2
+    y.backward()
+    print(f"Iteration {i+1}: grad = {x.grad}")
+    # Iteration 1: grad = tensor([4.])
+    # Iteration 2: grad = tensor([8.])  # Accumulated!
+    # Iteration 3: grad = tensor([12.])  # Accumulated!
+    
+# Clear gradients
+x.grad.zero_()
+print(f"After zeroing: grad = {x.grad}")  # tensor([0.])
+```
+
+### Gradient for Non-Scalar Outputs
+
+For non-scalar outputs, you need to specify a gradient:
+
+```python
+import torch
+
+x = torch.tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad=True)
+y = x ** 2
+
+# For non-scalar, need to provide gradient
+grad_output = torch.ones_like(y)
+y.backward(grad_output)
+
+print(x.grad)
+# tensor([[2., 4.],
+#         [6., 8.]])
+# Gradient is 2*x element-wise
+```
+
+## Computational Graphs
+
+PyTorch builds a dynamic computational graph (DAG) to track operations:
+
+<Accordion title="How Computational Graphs Work">
+When you perform operations on tensors with `requires_grad=True`, PyTorch creates a graph of `Function` objects. Each tensor has a `.grad_fn` attribute pointing to the function that created it. During `.backward()`, PyTorch traverses this graph in reverse (backpropagation) to compute gradients using the chain rule.
+</Accordion>
+
+```python
+import torch
+
+x = torch.tensor([2.0], requires_grad=True)
+y = x ** 2  # PowBackward
+z = y * 3   # MulBackward
+
+print(f"x.grad_fn: {x.grad_fn}")  # None (leaf variable)
+print(f"y.grad_fn: {y.grad_fn}")  # <PowBackward0>
+print(f"z.grad_fn: {z.grad_fn}")  # <MulBackward0>
+
+# Backward pass
+z.backward()
+print(f"x.grad: {x.grad}")  # tensor([12.]) = dz/dx = 3 * 2 * x
+```
+
+### Detaching from the Graph
+
+Sometimes you want to stop gradient tracking:
+
+<CodeGroup>
+```python Using .detach()
+import torch
+
+x = torch.tensor([2.0], requires_grad=True)
+y = x ** 2
+
+# Detach y from the computational graph
+z = y.detach()
+w = z * 3
+
+w.backward()  # Error! w doesn't require grad
+print(y.requires_grad)  # True
+print(z.requires_grad)  # False
+```
+
+```python Using .data
+import torch
+
+x = torch.tensor([2.0], requires_grad=True)
+y = x ** 2
+
+# Access underlying data (no gradient tracking)
+z = y.data
+print(z.requires_grad)  # False
+
+# Warning: Modifying .data doesn't update autograd
+```
+</CodeGroup>
+
+## Gradient Modes
+
+PyTorch provides context managers to control gradient computation:
+
+### no_grad
+
+Disables gradient tracking (useful for inference):
+
+```python
+import torch
+
+x = torch.tensor([1.0], requires_grad=True)
+
+# Normal operation
+y = x ** 2
+print(y.requires_grad)  # True
+
+# With no_grad
+with torch.no_grad():
+    y = x ** 2
+    print(y.requires_grad)  # False
+
+# As decorator
+@torch.no_grad()
+def inference(model, x):
+    return model(x)
+```
+
+### enable_grad
+
+Re-enables gradients within a `no_grad` context:
+
+```python
+import torch
+
+x = torch.tensor([1.0], requires_grad=True)
+
+with torch.no_grad():
+    with torch.enable_grad():
+        y = x ** 2
+        print(y.requires_grad)  # True
+```
+
+### set_grad_enabled
+
+Conditionally enable/disable gradients:
+
+```python
+import torch
+
+x = torch.tensor([1.0], requires_grad=True)
+is_train = False
+
+with torch.set_grad_enabled(is_train):
+    y = x ** 2
+    print(y.requires_grad)  # False when is_train=False
+```
+
+### inference_mode
+
+Faster than `no_grad` for inference (more restrictive):
+
+```python
+import torch
+import torch.nn as nn
+
+model = nn.Linear(10, 5)
+x = torch.randn(32, 10)
+
+with torch.inference_mode():
+    output = model(x)
+    # Faster than no_grad, but tensors can't be used with grad later
+```
+
+## Custom Autograd Functions
+
+You can define custom backward passes using `torch.autograd.Function`:
+
+```python
+import torch
+from torch.autograd import Function
+
+class MultiplyAdd(Function):
+    @staticmethod
+    def forward(ctx, x, y, z):
+        # Save tensors for backward
+        ctx.save_for_backward(x, y, z)
+        return x * y + z
+    
+    @staticmethod
+    def backward(ctx, grad_output):
+        # Retrieve saved tensors
+        x, y, z = ctx.saved_tensors
+        
+        # Compute gradients
+        grad_x = grad_output * y
+        grad_y = grad_output * x
+        grad_z = grad_output
+        
+        return grad_x, grad_y, grad_z
+
+# Use the custom function
+x = torch.tensor([2.0], requires_grad=True)
+y = torch.tensor([3.0], requires_grad=True)
+z = torch.tensor([1.0], requires_grad=True)
+
+output = MultiplyAdd.apply(x, y, z)
+output.backward()
+
+print(x.grad)  # tensor([3.]) = y
+print(y.grad)  # tensor([2.]) = x
+print(z.grad)  # tensor([1.])
+```
+
+## Gradient Checking
+
+Verify your gradients are correct using `torch.autograd.gradcheck`:
+
+```python
+import torch
+from torch.autograd import gradcheck
+
+def my_function(x):
+    return (x ** 2).sum()
+
+# Input must be double precision and require gradients
+x = torch.randn(3, 4, dtype=torch.double, requires_grad=True)
+
+# Check gradients numerically
+test_passed = gradcheck(my_function, x, eps=1e-6)
+print(f"Gradient check passed: {test_passed}")
+```
+
+## Higher-Order Gradients
+
+Compute gradients of gradients:
+
+```python
+import torch
+
+x = torch.tensor([2.0], requires_grad=True)
+
+# First-order gradient
+y = x ** 3
+y.backward(create_graph=True)  # Keep graph for higher-order grads
+
+first_grad = x.grad.clone()
+print(f"dy/dx = {first_grad}")  # 3 * x^2 = 12.0
+
+# Second-order gradient (gradient of gradient)
+x.grad.zero_()
+first_grad.backward()
+
+second_grad = x.grad
+print(f"d²y/dx² = {second_grad}")  # 6 * x = 12.0
+```
+
+## Common Patterns in Training
+
+### Training Loop
+
+```python
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Setup
+model = nn.Linear(10, 1)
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+criterion = nn.MSELoss()
+
+# Training loop
+for epoch in range(100):
+    # Forward pass
+    inputs = torch.randn(32, 10)
+    targets = torch.randn(32, 1)
+    outputs = model(inputs)
+    
+    # Compute loss
+    loss = criterion(outputs, targets)
+    
+    # Backward pass
+    optimizer.zero_grad()  # Clear old gradients
+    loss.backward()        # Compute gradients
+    optimizer.step()       # Update parameters
+    
+    if epoch % 10 == 0:
+        print(f"Epoch {epoch}, Loss: {loss.item():.4f}")
+```
+
+### Gradient Clipping
+
+Prevent exploding gradients:
+
+```python
+import torch
+import torch.nn as nn
+
+model = nn.LSTM(10, 20, 2)
+optimizer = torch.optim.Adam(model.parameters())
+
+# In training loop
+loss.backward()
+
+# Clip gradients by norm
+torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+# Or clip by value
+# torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=0.5)
+
+optimizer.step()
+```
+
+## Performance Tips
+
+<Tip>
+1. **Use torch.no_grad() for inference**: Disabling autograd reduces memory usage and speeds up computations
+2. **Accumulate gradients**: For large batch sizes that don't fit in memory, accumulate gradients over multiple mini-batches
+3. **Detach when needed**: If you don't need gradients for certain operations, use `.detach()` to save memory
+4. **Clear gradients properly**: Always call `optimizer.zero_grad()` or `param.grad.zero_()` before backward pass
+5. **Use inference_mode for deployment**: It's faster than `no_grad` for pure inference
+</Tip>
+
+## Debugging Autograd
+
+### Anomaly Detection
+
+Detect NaN or Inf gradients:
+
+```python
+import torch
+
+# Enable anomaly detection (slower, for debugging)
+with torch.autograd.detect_anomaly():
+    x = torch.tensor([1.0], requires_grad=True)
+    y = x ** 2
+    z = 1 / (y - 1)  # Will cause inf when y=1
+    z.backward()
+```
+
+### Gradient Profiling
+
+```python
+import torch
+
+x = torch.randn(100, 100, requires_grad=True)
+y = torch.randn(100, 100, requires_grad=True)
+
+with torch.autograd.profiler.profile() as prof:
+    z = (x @ y).sum()
+    z.backward()
+
+print(prof.key_averages().table(sort_by="cpu_time_total"))
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Neural Networks" icon="brain" href="/concepts/neural-networks">
+    Build neural networks using torch.nn
+  </Card>
+  <Card title="Tensors" icon="cube" href="/concepts/tensors">
+    Learn more about tensor operations
+  </Card>
+</CardGroup>

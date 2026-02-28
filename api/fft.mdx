@@ -1,0 +1,410 @@
+---
+title: 'torch.fft'
+description: 'Fast Fourier Transform operations'
+---
+
+# Fast Fourier Transform (FFT)
+
+The `torch.fft` module provides Fast Fourier Transform operations for signal processing and spectral analysis.
+
+## 1D FFT Functions
+
+### fft
+
+```python
+torch.fft.fft(input, n=None, dim=-1, norm=None, *, out=None)
+```
+
+Computes the one-dimensional discrete Fourier transform of `input`.
+
+<ParamField path="input" type="Tensor">
+  The input tensor.
+</ParamField>
+
+<ParamField path="n" type="int" default="None">
+  Signal length. If given, the input will either be zero-padded or trimmed to this length before computing the FFT.
+</ParamField>
+
+<ParamField path="dim" type="int" default="-1">
+  The dimension along which to take the one-dimensional FFT.
+</ParamField>
+
+<ParamField path="norm" type="str" default="None">
+  Normalization mode. Options: `"forward"`, `"backward"`, `"ortho"`.
+  - `"forward"`: normalize by `1/n`
+  - `"backward"`: no normalization (default)
+  - `"ortho"`: normalize by `1/sqrt(n)`
+</ParamField>
+
+<ResponseField name="Returns" type="Tensor">
+  Complex-valued tensor containing the FFT result
+</ResponseField>
+
+### ifft
+
+```python
+torch.fft.ifft(input, n=None, dim=-1, norm=None, *, out=None)
+```
+
+Computes the one-dimensional inverse discrete Fourier transform of `input`.
+
+<ParamField path="input" type="Tensor">
+  The input tensor.
+</ParamField>
+
+<ParamField path="n" type="int" default="None">
+  Signal length.
+</ParamField>
+
+<ParamField path="dim" type="int" default="-1">
+  The dimension along which to take the one-dimensional IFFT.
+</ParamField>
+
+<ParamField path="norm" type="str" default="None">
+  Normalization mode. Default is `"backward"` which normalizes by `1/n`.
+</ParamField>
+
+### rfft
+
+```python
+torch.fft.rfft(input, n=None, dim=-1, norm=None, *, out=None)
+```
+
+Computes the one-dimensional Fourier transform of real-valued `input`. Returns only positive frequencies (Hermitian symmetry).
+
+<ParamField path="input" type="Tensor">
+  The real input tensor.
+</ParamField>
+
+<ParamField path="n" type="int" default="None">
+  Signal length.
+</ParamField>
+
+<ParamField path="dim" type="int" default="-1">
+  The dimension along which to take the real FFT.
+</ParamField>
+
+### irfft
+
+```python
+torch.fft.irfft(input, n=None, dim=-1, norm=None, *, out=None)
+```
+
+Computes the inverse of `rfft`. Input is interpreted as a one-sided Hermitian signal.
+
+<ParamField path="input" type="Tensor">
+  The input tensor representing a half-Hermitian signal.
+</ParamField>
+
+<ParamField path="n" type="int" default="None">
+  Output signal length. Defaults to even output: `n=2*(input.size(dim) - 1)`.
+</ParamField>
+
+## 2D FFT Functions
+
+### fft2
+
+```python
+torch.fft.fft2(input, s=None, dim=(-2, -1), norm=None, *, out=None)
+```
+
+Computes the 2-dimensional discrete Fourier transform of `input`.
+
+<ParamField path="input" type="Tensor">
+  The input tensor.
+</ParamField>
+
+<ParamField path="s" type="Tuple[int]" default="None">
+  Signal size in the transformed dimensions. If given, each dimension `dim[i]` will either be zero-padded or trimmed to the length `s[i]`.
+</ParamField>
+
+<ParamField path="dim" type="Tuple[int]" default="(-2, -1)">
+  Dimensions to be transformed. Default: last two dimensions.
+</ParamField>
+
+<ParamField path="norm" type="str" default="None">
+  Normalization mode.
+</ParamField>
+
+### ifft2
+
+```python
+torch.fft.ifft2(input, s=None, dim=(-2, -1), norm=None, *, out=None)
+```
+
+Computes the 2-dimensional inverse discrete Fourier transform of `input`.
+
+### rfft2
+
+```python
+torch.fft.rfft2(input, s=None, dim=(-2, -1), norm=None, *, out=None)
+```
+
+Computes the 2-dimensional Fourier transform of real `input`.
+
+### irfft2
+
+```python
+torch.fft.irfft2(input, s=None, dim=(-2, -1), norm=None, *, out=None)
+```
+
+Computes the inverse of `rfft2`.
+
+## N-Dimensional FFT Functions
+
+### fftn
+
+```python
+torch.fft.fftn(input, s=None, dim=None, norm=None, *, out=None)
+```
+
+Computes the N-dimensional discrete Fourier transform of `input`.
+
+<ParamField path="input" type="Tensor">
+  The input tensor.
+</ParamField>
+
+<ParamField path="s" type="Tuple[int]" default="None">
+  Signal size in the transformed dimensions.
+</ParamField>
+
+<ParamField path="dim" type="Tuple[int]" default="None">
+  Dimensions to be transformed. Default: all dimensions.
+</ParamField>
+
+### ifftn
+
+```python
+torch.fft.ifftn(input, s=None, dim=None, norm=None, *, out=None)
+```
+
+Computes the N-dimensional inverse discrete Fourier transform of `input`.
+
+### rfftn
+
+```python
+torch.fft.rfftn(input, s=None, dim=None, norm=None, *, out=None)
+```
+
+Computes the N-dimensional Fourier transform of real `input`.
+
+### irfftn
+
+```python
+torch.fft.irfftn(input, s=None, dim=None, norm=None, *, out=None)
+```
+
+Computes the inverse of `rfftn`.
+
+## Hermitian FFT Functions
+
+### hfft
+
+```python
+torch.fft.hfft(input, n=None, dim=-1, norm=None, *, out=None)
+```
+
+Computes the one-dimensional discrete Fourier transform of a Hermitian symmetric `input` signal.
+
+### ihfft
+
+```python
+torch.fft.ihfft(input, n=None, dim=-1, norm=None, *, out=None)
+```
+
+Computes the inverse of `hfft`.
+
+## Helper Functions
+
+### fftfreq
+
+```python
+torch.fft.fftfreq(n, d=1.0, *, out=None, dtype=None, device=None)
+```
+
+Computes the discrete Fourier Transform sample frequencies.
+
+<ParamField path="n" type="int">
+  The FFT length.
+</ParamField>
+
+<ParamField path="d" type="float" default="1.0">
+  The sampling length scale. The spacing between individual samples of the FFT input.
+</ParamField>
+
+<ResponseField name="Returns" type="Tensor">
+  Tensor of length `n` containing the sample frequencies
+</ResponseField>
+
+### rfftfreq
+
+```python
+torch.fft.rfftfreq(n, d=1.0, *, out=None, dtype=None, device=None)
+```
+
+Computes the sample frequencies for `rfft` with a signal of size `n`.
+
+### fftshift
+
+```python
+torch.fft.fftshift(input, dim=None)
+```
+
+Reorders n-dimensional FFT output to have negative frequency terms first.
+
+<ParamField path="input" type="Tensor">
+  The input tensor.
+</ParamField>
+
+<ParamField path="dim" type="int or Tuple[int]" default="None">
+  The dimension(s) to shift. Default: all dimensions.
+</ParamField>
+
+### ifftshift
+
+```python
+torch.fft.ifftshift(input, dim=None)
+```
+
+Inverse of `fftshift`.
+
+## Example Usage
+
+<CodeGroup>
+```python 1D FFT
+import torch
+import torch.fft
+
+# Create a signal
+t = torch.arange(0, 1, 0.01)
+signal = torch.sin(2 * torch.pi * 5 * t) + torch.sin(2 * torch.pi * 10 * t)
+
+# Compute FFT
+fft_result = torch.fft.fft(signal)
+
+# Get magnitude spectrum
+magnitude = torch.abs(fft_result)
+
+# Get frequencies
+freqs = torch.fft.fftfreq(len(t), d=0.01)
+
+print(f"Signal shape: {signal.shape}")
+print(f"FFT result shape: {fft_result.shape}")
+print(f"Frequencies shape: {freqs.shape}")
+```
+
+```python Real FFT
+import torch
+import torch.fft
+
+# Real-valued signal
+t = torch.linspace(0, 1, 100)
+signal = torch.cos(2 * torch.pi * 5 * t)
+
+# Real FFT (more efficient for real signals)
+rfft_result = torch.fft.rfft(signal)
+
+print(f"Input size: {signal.size()}")
+print(f"RFFT output size: {rfft_result.size()}")  # Only positive frequencies
+
+# Reconstruct signal
+reconstructed = torch.fft.irfft(rfft_result, n=len(signal))
+print(f"Reconstruction error: {torch.max(torch.abs(signal - reconstructed))}")
+```
+
+```python 2D FFT (Image Processing)
+import torch
+import torch.fft
+
+# Create a 2D image
+image = torch.randn(256, 256)
+
+# Compute 2D FFT
+fft2_result = torch.fft.fft2(image)
+
+# Shift zero frequency to center
+fft2_shifted = torch.fft.fftshift(fft2_result)
+
+# Compute magnitude spectrum
+magnitude_spectrum = torch.log(torch.abs(fft2_shifted) + 1)
+
+print(f"Image shape: {image.shape}")
+print(f"FFT2 shape: {fft2_result.shape}")
+print(f"Magnitude spectrum range: [{magnitude_spectrum.min()}, {magnitude_spectrum.max()}]")
+
+# Reconstruct image
+image_reconstructed = torch.fft.ifft2(fft2_result).real
+print(f"Reconstruction error: {torch.max(torch.abs(image - image_reconstructed))}")
+```
+
+```python Spectral Filtering
+import torch
+import torch.fft
+
+# Create a noisy signal
+t = torch.linspace(0, 1, 1000)
+clean_signal = torch.sin(2 * torch.pi * 5 * t)
+noise = 0.5 * torch.randn_like(t)
+noisy_signal = clean_signal + noise
+
+# Transform to frequency domain
+fft_result = torch.fft.fft(noisy_signal)
+freqs = torch.fft.fftfreq(len(t), d=1.0/1000)
+
+# Create a low-pass filter (keep frequencies below 10 Hz)
+mask = torch.abs(freqs) < 10
+filtered_fft = fft_result * mask
+
+# Transform back to time domain
+filtered_signal = torch.fft.ifft(filtered_fft).real
+
+print(f"Original noise level: {torch.std(noisy_signal - clean_signal)}")
+print(f"Filtered noise level: {torch.std(filtered_signal - clean_signal)}")
+```
+
+```python Batch FFT
+import torch
+import torch.fft
+
+# Batch of signals
+batch_size = 32
+seq_length = 128
+signals = torch.randn(batch_size, seq_length)
+
+# FFT on all signals in batch
+fft_batch = torch.fft.fft(signals, dim=1)
+
+print(f"Input shape: {signals.shape}")
+print(f"FFT output shape: {fft_batch.shape}")
+
+# Magnitude spectrum for each signal
+magnitudes = torch.abs(fft_batch)
+print(f"Magnitude spectrum shape: {magnitudes.shape}")
+```
+</CodeGroup>
+
+## Normalization Modes
+
+<Accordion title="Understanding Normalization">
+  Different normalization modes affect how the FFT scales the output:
+  
+  - **"backward"** (default): No normalization on forward transform, `1/n` on inverse
+  - **"forward"**: `1/n` normalization on forward transform, none on inverse
+  - **"ortho"**: `1/sqrt(n)` on both forward and inverse (orthonormal)
+  
+  The choice affects energy preservation and should be consistent between forward and inverse transforms.
+</Accordion>
+
+<Accordion title="Real vs Complex FFT">
+  - Use `rfft` for real-valued signals - it's more efficient (about 2x faster)
+  - `rfft` returns only positive frequencies due to Hermitian symmetry
+  - Always use `irfft` to invert `rfft` results
+  - When reconstructing with `irfft`, specify `n` parameter for odd-length signals
+</Accordion>
+
+<Accordion title="Performance Tips">
+  - FFT is fastest when signal length is a power of 2
+  - For batched operations, put the batch dimension first
+  - Use `rfft` for real signals to save memory and computation
+  - Consider using `torch.fft.fftshift` for visualization but not for filtering
+</Accordion>

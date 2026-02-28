@@ -1,0 +1,191 @@
+---
+title: 'torch.nn'
+description: 'PyTorch neural network module overview and core components'
+---
+
+## Overview
+
+The `torch.nn` module provides the building blocks for creating neural networks in PyTorch. It contains layers, activation functions, loss functions, and utilities for building and training deep learning models.
+
+## Key Components
+
+### Module Base Class
+
+All neural network modules inherit from `torch.nn.Module`, which provides:
+- Parameter management
+- Forward pass computation
+- Training/evaluation mode switching
+- Device and dtype management
+
+### Main Submodules
+
+<CardGroup cols={2}>
+  <Card title="Modules" icon="layer-group" href="/api/nn-modules">
+    Neural network layers and containers (Linear, Conv2d, Sequential, etc.)
+  </Card>
+  
+  <Card title="Functional" icon="function" href="/api/nn-functional">
+    Functional API for operations without learnable parameters
+  </Card>
+  
+  <Card title="Initialization" icon="wand-magic-sparkles" href="/api/nn-init">
+    Weight initialization methods for neural networks
+  </Card>
+  
+  <Card title="Loss Functions" icon="chart-line">
+    Training objectives like CrossEntropyLoss, MSELoss
+  </Card>
+</CardGroup>
+
+## Core Classes
+
+### Parameter
+
+```python
+torch.nn.Parameter(data, requires_grad=True)
+```
+
+<ParamField path="data" type="Tensor" required>
+  Tensor data for the parameter
+</ParamField>
+
+<ParamField path="requires_grad" type="bool" default="True">
+  Whether the parameter requires gradient computation
+</ParamField>
+
+A kind of Tensor that is automatically registered as a parameter when assigned as a Module attribute.
+
+### Buffer
+
+```python
+torch.nn.Buffer(tensor)
+```
+
+Registers a buffer that won't be considered a model parameter but will be saved in state_dict.
+
+## Usage Example
+
+```python
+import torch
+import torch.nn as nn
+
+class SimpleNet(nn.Module):
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.fc1 = nn.Linear(784, 128)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(128, 10)
+    
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        return x
+
+# Create model
+model = SimpleNet()
+
+# Forward pass
+input_data = torch.randn(32, 784)
+output = model(input_data)
+```
+
+## Factory Kwargs
+
+```python
+torch.nn.factory_kwargs(kwargs)
+```
+
+Returns a canonicalized dict of factory kwargs (device, dtype, memory_format) that can be passed to factory functions.
+
+<ParamField path="kwargs" type="dict">
+  Dictionary that may contain device, dtype, memory_format, or factory_kwargs keys
+</ParamField>
+
+<ResponseField name="return" type="dict">
+  Canonicalized dictionary with factory kwargs
+</ResponseField>
+
+## Common Patterns
+
+### Model Definition
+
+```python
+class MyModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Define layers
+        self.layer1 = nn.Linear(10, 20)
+        self.layer2 = nn.Linear(20, 1)
+    
+    def forward(self, x):
+        # Define forward pass
+        x = self.layer1(x)
+        x = torch.relu(x)
+        x = self.layer2(x)
+        return x
+```
+
+### Training Mode
+
+```python
+# Set model to training mode
+model.train()
+
+# Set model to evaluation mode
+model.eval()
+```
+
+### Device Management
+
+```python
+# Move model to GPU
+model = model.to('cuda')
+
+# Or with device object
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = model.to(device)
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always call super().__init__()">
+    When creating custom modules, always call the parent class constructor:
+    
+    ```python
+    class MyModule(nn.Module):
+        def __init__(self):
+            super().__init__()  # or super(MyModule, self).__init__()
+            # Your initialization
+    ```
+  </Accordion>
+  
+  <Accordion title="Use nn.Parameter for learnable weights">
+    Tensors assigned as attributes won't be registered as parameters unless wrapped:
+    
+    ```python
+    # Correct
+    self.weight = nn.Parameter(torch.randn(10, 20))
+    
+    # Wrong - won't be trained
+    self.weight = torch.randn(10, 20)
+    ```
+  </Accordion>
+  
+  <Accordion title="Implement forward() method">
+    The forward method defines the computation performed at every call:
+    
+    ```python
+    def forward(self, x):
+        # Define your forward pass
+        return self.layer(x)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## See Also
+
+- [Neural Network Modules](/api/nn-modules) - Detailed module documentation
+- [Functional API](/api/nn-functional) - Stateless operations
+- [Weight Initialization](/api/nn-init) - Initialize network weights

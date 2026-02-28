@@ -1,0 +1,365 @@
+---
+title: 'torch.jit'
+description: 'TorchScript JIT compiler API'
+---
+
+# TorchScript JIT
+
+The `torch.jit` module provides functionality for creating TorchScript code from PyTorch code. TorchScript is a way to create serializable and optimizable models from PyTorch code.
+
+<Warning>
+  TorchScript is deprecated as of PyTorch 2.0. Please use `torch.compile` instead for better performance and ease of use.
+</Warning>
+
+## Core Functions
+
+### script
+
+```python
+torch.jit.script(
+    obj,
+    optimize=None,
+    _frames_up=0,
+    _rcb=None,
+    example_inputs=None
+)
+```
+
+Scripts a function or `nn.Module`, compiling it to TorchScript.
+
+<ParamField path="obj" type="callable or nn.Module">
+  The function or module to be scripted. Can be a function, method, or `nn.Module`.
+</ParamField>
+
+<ParamField path="example_inputs" type="tuple" default="None">
+  Example inputs to the function or module. Used to infer types.
+</ParamField>
+
+<ResponseField name="Returns" type="ScriptModule or ScriptFunction">
+  The compiled TorchScript code
+</ResponseField>
+
+### trace
+
+```python
+torch.jit.trace(
+    func,
+    example_inputs,
+    optimize=None,
+    check_trace=True,
+    check_inputs=None,
+    check_tolerance=1e-5,
+    strict=True,
+    _force_outplace=False,
+    _module_class=None,
+    _compilation_unit=_python_cu
+)
+```
+
+Trace a function and return an executable or `ScriptModule` that will be optimized using just-in-time compilation.
+
+<ParamField path="func" type="callable or nn.Module">
+  A Python function or `torch.nn.Module` that will be run with `example_inputs`.
+</ParamField>
+
+<ParamField path="example_inputs" type="tuple or Tensor">
+  A tuple of example inputs that will be passed to the function while tracing.
+</ParamField>
+
+<ParamField path="check_trace" type="bool" default="True">
+  Check if the same inputs run through traced code produce the same outputs.
+</ParamField>
+
+<ParamField path="strict" type="bool" default="True">
+  Run the tracer in strict mode, which enforces that the entire computation is traceable.
+</ParamField>
+
+<ResponseField name="Returns" type="ScriptModule or ScriptFunction">
+  The traced code
+</ResponseField>
+
+## Optimization Functions
+
+### freeze
+
+```python
+torch.jit.freeze(
+    mod,
+    preserved_attrs=None,
+    optimize_numerics=True
+)
+```
+
+Clones a `ScriptModule` and attempts to inline the cloned module's submodules, parameters, and attributes as constants.
+
+<ParamField path="mod" type="ScriptModule">
+  The module to freeze.
+</ParamField>
+
+<ParamField path="preserved_attrs" type="list[str]" default="None">
+  Attributes to preserve in the frozen module.
+</ParamField>
+
+<ParamField path="optimize_numerics" type="bool" default="True">
+  Whether to run optimizations that assume floating point operations are associative.
+</ParamField>
+
+### optimize_for_inference
+
+```python
+torch.jit.optimize_for_inference(
+    mod,
+    other_methods=None
+)
+```
+
+Performs a set of optimization passes to optimize a model for inference.
+
+<ParamField path="mod" type="ScriptModule">
+  The module to optimize.
+</ParamField>
+
+<ParamField path="other_methods" type="list[str]" default="None">
+  Other methods to optimize in addition to `forward`.
+</ParamField>
+
+## Serialization
+
+### save
+
+```python
+torch.jit.save(m, f, _extra_files=None)
+```
+
+Save a `ScriptModule` or `ScriptFunction` to a file.
+
+<ParamField path="m" type="ScriptModule or ScriptFunction">
+  The module or function to save.
+</ParamField>
+
+<ParamField path="f" type="str or file-like object">
+  A file-like object or a string containing a file name.
+</ParamField>
+
+### load
+
+```python
+torch.jit.load(f, map_location=None, _extra_files=None)
+```
+
+Load a `ScriptModule` or `ScriptFunction` previously saved with `torch.jit.save`.
+
+<ParamField path="f" type="str or file-like object">
+  A file-like object or a string containing a file name.
+</ParamField>
+
+<ParamField path="map_location" type="str, torch.device, or dict" default="None">
+  A function, `torch.device`, string or a dict specifying how to remap storage locations.
+</ParamField>
+
+<ResponseField name="Returns" type="ScriptModule or ScriptFunction">
+  The loaded module or function
+</ResponseField>
+
+## Type Annotations
+
+### annotate
+
+```python
+torch.jit.annotate(the_type, the_value)
+```
+
+Use to give type of `the_value` in TorchScript compiler.
+
+<ParamField path="the_type" type="type">
+  Python type that should be passed to TorchScript compiler as type hint.
+</ParamField>
+
+<ParamField path="the_value" type="Any">
+  Value or expression to hint type for.
+</ParamField>
+
+### isinstance
+
+```python
+torch.jit.isinstance(obj, target_type)
+```
+
+Provide container type refinement in TorchScript.
+
+<ParamField path="obj" type="Any">
+  Object to refine the type of.
+</ParamField>
+
+<ParamField path="target_type" type="type">
+  Type to try to refine obj to.
+</ParamField>
+
+## Decorators and Context Managers
+
+### ignore
+
+```python
+@torch.jit.ignore
+def fn(x):
+    # This function will not be compiled
+    return x.numpy()
+```
+
+Decorator that tells the compiler to ignore a function or method.
+
+### unused
+
+```python
+@torch.jit.unused
+def fn(x):
+    # This function can be unused in TorchScript
+    return x + 1
+```
+
+Decorator indicating that a function or method may be unused.
+
+### export
+
+```python
+@torch.jit.export
+def fn(x):
+    return x * 2
+```
+
+Decorator that marks a method as exported, making it callable from C++.
+
+## Async Execution
+
+### fork
+
+```python
+torch.jit.fork(func, *args, **kwargs)
+```
+
+Creates an asynchronous task executing `func` and returns a reference to the value of the result of this execution.
+
+<ParamField path="func" type="callable">
+  A Python function or TorchScript function to execute asynchronously.
+</ParamField>
+
+### wait
+
+```python
+torch.jit.wait(future)
+```
+
+Forces completion of a `torch.jit.Future[T]` asynchronous task, returning the result of the task.
+
+<ParamField path="future" type="Future">
+  The future to wait on.
+</ParamField>
+
+## Example Usage
+
+<CodeGroup>
+```python Scripting Example
+import torch
+import torch.nn as nn
+
+class MyModule(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.Linear(10, 5)
+    
+    def forward(self, x):
+        return self.linear(x)
+
+# Script the module
+module = MyModule()
+scripted_module = torch.jit.script(module)
+
+# Use the scripted module
+x = torch.randn(1, 10)
+output = scripted_module(x)
+print(output)
+
+# Save the scripted module
+torch.jit.save(scripted_module, 'model.pt')
+```
+
+```python Tracing Example
+import torch
+import torch.nn as nn
+
+class MyModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = nn.Conv2d(3, 64, 3)
+        self.relu = nn.ReLU()
+    
+    def forward(self, x):
+        return self.relu(self.conv(x))
+
+model = MyModel()
+example_input = torch.randn(1, 3, 224, 224)
+
+# Trace the model
+traced_model = torch.jit.trace(model, example_input)
+
+# Use traced model
+output = traced_model(example_input)
+print(output.shape)
+```
+
+```python Type Annotation Example
+import torch
+from typing import Dict, List
+
+@torch.jit.script
+def process_dict(data: Dict[str, torch.Tensor]) -> torch.Tensor:
+    # Type annotations help TorchScript understand the code
+    result = torch.zeros(10)
+    for key, value in data.items():
+        result += value
+    return result
+
+data = {"a": torch.ones(10), "b": torch.ones(10)}
+output = process_dict(data)
+```
+
+```python Async Execution Example
+import torch
+
+@torch.jit.script
+def async_computation(x, y):
+    # Fork computation to run asynchronously
+    future1 = torch.jit.fork(lambda: x + y)
+    future2 = torch.jit.fork(lambda: x * y)
+    
+    # Wait for results
+    result1 = torch.jit.wait(future1)
+    result2 = torch.jit.wait(future2)
+    
+    return result1, result2
+
+x = torch.randn(100, 100)
+y = torch.randn(100, 100)
+sum_result, prod_result = async_computation(x, y)
+```
+</CodeGroup>
+
+## Best Practices
+
+<Accordion title="When to use script vs trace">
+  - Use `torch.jit.script` when your code has control flow (if statements, loops)
+  - Use `torch.jit.trace` for models with consistent execution paths
+  - `script` analyzes Python code directly, while `trace` records operations during execution
+</Accordion>
+
+<Accordion title="Performance optimization">
+  - Use `torch.jit.freeze` before deployment to inline constants
+  - Apply `optimize_for_inference` for inference-only models
+  - Consider using `torch.compile` (PyTorch 2.0+) as an alternative
+</Accordion>
+
+<Accordion title="Debugging TorchScript">
+  - Use `check_trace=True` when tracing to validate correctness
+  - Add type annotations for better error messages
+  - Use `@torch.jit.ignore` for code that doesn't need to be compiled
+</Accordion>

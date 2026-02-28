@@ -1,0 +1,469 @@
+---
+title: ROCm Support  
+description: AMD ROCm GPU acceleration for PyTorch on AMD GPUs
+---
+
+PyTorch provides support for AMD GPUs through the ROCm platform, enabling GPU acceleration for deep learning workloads on AMD hardware.
+
+## Overview
+
+ROCm (Radeon Open Compute) is AMD's open-source software platform for GPU computing. PyTorch's ROCm support allows you to leverage AMD GPUs for training and inference, using the same `torch.cuda` API.
+
+<Note>
+PyTorch ROCm support uses the same `torch.cuda` namespace for compatibility, even though you're using AMD GPUs instead of NVIDIA hardware.
+</Note>
+
+## Installation & Setup
+
+### Prerequisites
+
+To compile PyTorch with ROCm support, you need:
+
+- [AMD ROCm](https://rocm.docs.amd.com/en/latest/deploy/linux/quick_start.html) 4.0 or above
+- Linux operating system (ROCm is currently supported only on Linux)
+- Compatible AMD GPU (see [supported GPUs](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/reference/system-requirements.html#supported-gpus))
+
+<Warning>
+ROCm is currently supported only for Linux systems. Windows and macOS are not supported.
+</Warning>
+
+### Environment Variables
+
+```bash
+# Set ROCm installation directory (default: /opt/rocm)
+export ROCM_PATH=/opt/rocm
+
+# Disable ROCm support during build
+export USE_ROCM=0
+
+# Specify AMD GPU architecture (optional)
+# The build system auto-detects by default
+export PYTORCH_ROCM_ARCH=gfx90a
+```
+
+### Building from Source
+
+<Tabs>
+  <Tab title="Linux">
+    ```bash
+    # Clone PyTorch repository
+    git clone https://github.com/pytorch/pytorch
+    cd pytorch
+    git submodule sync
+    git submodule update --init --recursive
+
+    # Install dependencies
+    pip install --group dev
+    pip install mkl-static mkl-include
+
+    # Run AMD build script (ROCm only)
+    python tools/amd_build/build_amd.py
+
+    # Build PyTorch
+    export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMAKE_PREFIX_PATH}"
+    python -m pip install --no-build-isolation -v -e .
+    ```
+  </Tab>
+  
+  <Tab title="Custom ROCm Path">
+    ```bash
+    # If ROCm is installed in a non-standard location
+    export ROCM_PATH=/custom/path/to/rocm
+    
+    # Run AMD build script
+    python tools/amd_build/build_amd.py
+    
+    # Build PyTorch
+    export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMAKE_PREFIX_PATH}"
+    python -m pip install --no-build-isolation -v -e .
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+The build system automatically detects your AMD GPU architecture. To explicitly set it, use the `PYTORCH_ROCM_ARCH` environment variable with values like `gfx90a`, `gfx942`, etc.
+</Tip>
+
+## Device Management
+
+### Checking ROCm Availability
+
+```python
+import torch
+
+# Check if CUDA (ROCm) is available
+if torch.cuda.is_available():
+    print(f"ROCm is available with {torch.cuda.device_count()} GPU(s)")
+    print(f"Current device: {torch.cuda.current_device()}")
+    print(f"Device name: {torch.cuda.get_device_name(0)}")
+    
+    # Verify ROCm backend
+    print(f"Using HIP: {torch.version.hip}")
+else:
+    print("ROCm is not available")
+```
+
+### Identifying ROCm vs CUDA
+
+```python
+import torch
+
+# Check if running on ROCm (HIP) vs CUDA
+if torch.version.hip:
+    print(f"Running on ROCm/HIP version: {torch.version.hip}")
+    print("AMD GPU backend detected")
+else:
+    print(f"Running on CUDA version: {torch.version.cuda}")
+    print("NVIDIA GPU backend detected")
+```
+
+### Device Selection
+
+```python
+# ROCm uses the same API as CUDA
+with torch.cuda.device(0):
+    # Operations here use AMD GPU 0
+    tensor = torch.randn(100, 100, device='cuda')
+    result = tensor @ tensor.T
+
+# Set current device
+torch.cuda.set_device(1)
+
+# Create tensors on AMD GPU
+tensor_gpu = torch.randn(1000, 1000, device='cuda')
+```
+
+### Device Properties
+
+```python
+# Get AMD GPU properties
+props = torch.cuda.get_device_properties(0)
+
+print(f"Device name: {props.name}")
+print(f"GCN Architecture: {props.gcnArchName}")
+print(f"Compute capability: {props.major}.{props.minor}")
+print(f"Total memory: {props.total_memory / 1e9:.2f} GB")
+print(f"Multi-processor count: {props.multi_processor_count}")
+```
+
+## Tensor Operations
+
+### Creating Tensors on AMD GPU
+
+```python
+# Same API as CUDA
+tensor_gpu = torch.randn(1000, 1000, device='cuda')
+
+# Move CPU tensor to GPU
+tensor_cpu = torch.randn(1000, 1000)
+tensor_gpu = tensor_cpu.to('cuda')
+
+# Using cuda() method
+tensor_gpu = tensor_cpu.cuda()
+
+# Multi-GPU support
+tensor_gpu1 = torch.randn(100, 100, device='cuda:1')
+```
+
+### Mixed Precision on ROCm
+
+```python
+from torch.cuda.amp import autocast, GradScaler
+
+model = MyModel().cuda()
+optimizer = torch.optim.Adam(model.parameters())
+scaler = GradScaler()
+
+for input, target in dataloader:
+    input = input.cuda()
+    target = target.cuda()
+    
+    optimizer.zero_grad()
+    
+    # Automatic mixed precision on AMD GPU
+    with autocast():
+        output = model(input)
+        loss = criterion(output, target)
+    
+    scaler.scale(loss).backward()
+    scaler.step(optimizer)
+    scaler.update()
+```
+
+## Memory Management
+
+### Memory Information
+
+```python
+# Get memory usage (same API as CUDA)
+allocated = torch.cuda.memory_allocated(0)
+reserved = torch.cuda.memory_reserved(0)
+
+print(f"Allocated: {allocated / 1e9:.2f} GB")
+print(f"Reserved: {reserved / 1e9:.2f} GB")
+
+# Get detailed memory summary
+print(torch.cuda.memory_summary(device=0))
+```
+
+### Memory Cleanup
+
+```python
+# Free unused cached memory
+torch.cuda.empty_cache()
+
+# Reset peak memory statistics
+torch.cuda.reset_peak_memory_stats(0)
+```
+
+## BFloat16 Support
+
+ROCm provides native BFloat16 support on compatible AMD GPU architectures.
+
+```python
+# Check BF16 support on AMD GPU
+if torch.cuda.is_bf16_supported():
+    print("BFloat16 is supported on this AMD GPU")
+    
+    # Create BF16 tensors
+    tensor_bf16 = torch.randn(100, 100, dtype=torch.bfloat16, device='cuda')
+    
+    # Mixed precision with BF16
+    model = MyModel().cuda()
+    model = model.to(dtype=torch.bfloat16)
+```
+
+## TF32 Support on AMD
+
+```python
+# Check TF32 support on AMD GPUs (gfx94x, gfx95x series)
+if torch.cuda.is_tf32_supported():
+    print("TF32 is supported")
+    
+    # TF32 is supported on:
+    # - gfx94x architectures (MI300 series)
+    # - gfx95x architectures (future AMD GPUs)
+    
+    props = torch.cuda.get_device_properties(0)
+    print(f"GPU Architecture: {props.gcnArchName}")
+```
+
+## Streams and Synchronization
+
+ROCm supports the same stream and synchronization primitives as CUDA.
+
+```python
+# Create streams on AMD GPU
+stream = torch.cuda.Stream()
+
+with torch.cuda.stream(stream):
+    # Asynchronous operations on AMD GPU
+    output = model(input_tensor)
+
+# Synchronize stream
+stream.synchronize()
+
+# Device synchronization
+torch.cuda.synchronize()
+```
+
+## Multi-GPU Training on ROCm
+
+### DataParallel
+
+```python
+model = MyModel()
+if torch.cuda.device_count() > 1:
+    print(f"Using {torch.cuda.device_count()} AMD GPUs")
+    model = torch.nn.DataParallel(model)
+
+model = model.cuda()
+```
+
+### DistributedDataParallel with RCCL
+
+```python
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+
+# Use RCCL backend (ROCm Collective Communications Library)
+dist.init_process_group(backend='nccl')  # Uses RCCL on ROCm
+
+model = MyModel().cuda()
+model = DDP(model)
+
+# Training loop
+for input, target in dataloader:
+    output = model(input.cuda())
+    loss = criterion(output, target.cuda())
+    loss.backward()
+    optimizer.step()
+```
+
+<Note>
+On ROCm systems, the `nccl` backend automatically uses RCCL (ROCm Collective Communications Library) instead of NVIDIA's NCCL.
+</Note>
+
+## MIOpen Backend
+
+ROCm uses MIOpen (AMD's equivalent to cuDNN) for optimized deep learning primitives.
+
+```python
+# MIOpen configuration
+import torch.backends.miopen as miopen
+
+# Enable MIOpen benchmarking for optimal performance
+miopen.benchmark = True
+
+# Check if MIOpen is enabled
+if miopen.is_available():
+    print("MIOpen is available")
+    print(f"MIOpen version: {miopen.version()}")
+```
+
+## Performance Optimization
+
+### Pinned Memory
+
+```python
+# Faster CPU-GPU transfers with pinned memory
+tensor_pinned = torch.randn(1000, 1000).pin_memory()
+tensor_gpu = tensor_pinned.cuda(non_blocking=True)
+
+# Use in DataLoader
+train_loader = torch.utils.data.DataLoader(
+    dataset,
+    batch_size=32,
+    pin_memory=True,
+    num_workers=4
+)
+```
+
+### Profiling ROCm Applications
+
+```python
+from torch.profiler import profile, ProfilerActivity
+
+with profile(
+    activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+    record_shapes=True
+) as prof:
+    model(input_tensor.cuda())
+
+print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+```
+
+## ROCm-Specific Considerations
+
+### Supported AMD GPU Architectures
+
+Common AMD GPU architectures supported by ROCm:
+
+- **gfx906**: AMD Radeon VII, MI50/MI60
+- **gfx908**: MI100
+- **gfx90a**: MI210, MI250/MI250X
+- **gfx940**, **gfx941**, **gfx942**: MI300A/MI300X series
+- **gfx1030**: Navi 21 (RX 6800/6900 series)
+- **gfx1100**: RDNA 3 (RX 7900 series)
+
+```python
+# Check your GPU architecture
+props = torch.cuda.get_device_properties(0)
+print(f"GCN Architecture: {props.gcnArchName}")
+```
+
+### Environment Variables for ROCm
+
+```bash
+# Enable debug logging
+export AMD_LOG_LEVEL=4
+
+# Set visible GPUs (same as CUDA_VISIBLE_DEVICES)
+export CUDA_VISIBLE_DEVICES=0,1
+
+# ROCm-specific visibility
+export HIP_VISIBLE_DEVICES=0,1
+
+# Disable GPU kernel cache
+export HSA_ENABLE_INTERRUPT=0
+```
+
+## Migration from CUDA to ROCm
+
+<Tip>
+Most PyTorch code written for NVIDIA CUDA GPUs works on AMD ROCm GPUs without modification, as PyTorch uses the same API namespace (`torch.cuda`).
+</Tip>
+
+### Code Compatibility
+
+```python
+# This code works on both CUDA and ROCm
+import torch
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = MyModel().to(device)
+
+for input, target in dataloader:
+    input = input.to(device)
+    target = target.to(device)
+    
+    output = model(input)
+    loss = criterion(output, target)
+    loss.backward()
+    optimizer.step()
+```
+
+### Backend Detection
+
+```python
+def get_gpu_backend():
+    """Detect whether using CUDA or ROCm backend."""
+    if torch.version.hip:
+        return 'rocm'
+    elif torch.version.cuda:
+        return 'cuda'
+    else:
+        return 'cpu'
+
+backend = get_gpu_backend()
+print(f"Using backend: {backend}")
+```
+
+## Common Issues
+
+<Warning>
+**ROCm Version Compatibility**
+
+Ensure your ROCm version matches your PyTorch build. Check compatibility:
+
+```bash
+# Check ROCm version
+rocm-smi --showversion
+
+# Check PyTorch ROCm version
+python -c "import torch; print(torch.version.hip)"
+```
+</Warning>
+
+<Warning>
+**Out of Memory Errors**
+
+AMD GPUs may have different memory characteristics:
+
+1. Reduce batch size if needed
+2. Use gradient checkpointing
+3. Enable mixed precision training
+4. Call `torch.cuda.empty_cache()` to free cached memory
+</Warning>
+
+## API Reference
+
+ROCm uses the `torch.cuda` namespace with additional AMD-specific properties:
+
+- `torch.cuda.is_available()` - Check ROCm availability
+- `torch.cuda.device_count()` - Get number of AMD GPUs  
+- `torch.cuda.get_device_properties()` - Get AMD GPU properties (includes `gcnArchName`)
+- `torch.version.hip` - ROCm/HIP version string
+- `torch.backends.miopen` - MIOpen backend settings
+
+For more details, see the [ROCm documentation](https://rocm.docs.amd.com/).

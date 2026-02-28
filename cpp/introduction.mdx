@@ -1,0 +1,162 @@
+---
+title: 'C++ API Introduction'
+description: 'Overview of the PyTorch C++ API (LibTorch) for production and research'
+---
+
+## What is LibTorch?
+
+LibTorch is the C++ distribution of PyTorch, providing a research and production ready library for tensor computation and dynamic neural networks with strong GPU acceleration and fast CPU performance.
+
+The PyTorch C++ API can be roughly divided into five parts:
+
+- **ATen**: The foundational tensor and mathematical operation library on which all else is built
+- **Autograd**: Augments ATen with automatic differentiation
+- **C++ Frontend**: High level constructs for training and evaluation of machine learning models
+- **TorchScript**: An interface to the TorchScript JIT compiler and interpreter
+- **C++ Extensions**: A means of extending the Python API with custom C++ and CUDA routines
+
+<Warning>
+At the moment, the C++ API should be considered "beta" stability. We may make major breaking changes to the backend in order to improve the API, or in service of providing the Python interface to PyTorch, which is our most stable and best supported interface.
+</Warning>
+
+## Why Use the C++ API?
+
+The PyTorch C++ API is ideal for several use cases:
+
+### Production Deployment
+- **No Python Dependency**: Deploy models without Python runtime overhead
+- **Better Performance**: Lower latency and higher throughput for inference
+- **Multi-threading**: Native C++ threading without GIL constraints
+- **Embedded Systems**: Run on resource-constrained devices
+
+### High-Performance Computing
+- **Direct Hardware Access**: Fine-grained control over GPU operations
+- **Custom Kernels**: Write CUDA kernels and integrate seamlessly
+- **Optimized Execution**: Minimize overhead for performance-critical applications
+
+### Research Applications
+- **Novel Architectures**: Implement custom layers and operations
+- **Low-level Control**: Access to ATen's tensor internals
+- **C++ Libraries**: Integrate with existing C++ codebases
+
+## API Components
+
+### ATen: Core Tensor Library
+
+ATen provides the fundamental `Tensor` class with hundreds of operations. Tensors dynamically dispatch to CPU or GPU implementations based on their type.
+
+```cpp
+#include <ATen/ATen.h>
+
+at::Tensor a = at::ones({2, 2}, at::kInt);
+at::Tensor b = at::randn({2, 2});
+auto c = a + b.to(at::kInt);
+```
+
+All ATen symbols are in the `at::` namespace. See the [Tensor API documentation](/cpp/tensors) for details.
+
+### Autograd: Automatic Differentiation
+
+The autograd system records operations on tensors to form a computational graph. Calling `backward()` performs reverse-mode differentiation.
+
+```cpp
+#include <torch/torch.h>
+
+torch::Tensor a = torch::ones({2, 2}, torch::requires_grad());
+torch::Tensor b = torch::randn({2, 2});
+auto c = a + b;
+c.sum().backward();
+// a.grad() now holds the gradient of c w.r.t. a
+```
+
+<Note>
+Tensors created with `torch::` factory functions are differentiable, while those from `at::` are not. Use `torch::` namespace for autograd support.
+</Note>
+
+### C++ Frontend: High-Level API
+
+The C++ frontend provides a PyTorch-like interface for building and training models:
+
+- **Module System**: Hierarchical models like `torch.nn.Module`
+- **Standard Library**: Pre-built layers (convolutions, RNNs, batch normalization)
+- **Optimizers**: SGD, Adam, RMSprop, and more
+- **Data Loading**: Parallel data loading like `torch.utils.data.DataLoader`
+- **Serialization**: Save and load model checkpoints
+
+```cpp
+#include <torch/torch.h>
+
+struct Net : torch::nn::Module {
+  Net() {
+    fc1 = register_module("fc1", torch::nn::Linear(784, 128));
+    fc2 = register_module("fc2", torch::nn::Linear(128, 10));
+  }
+
+  torch::Tensor forward(torch::Tensor x) {
+    x = torch::relu(fc1->forward(x));
+    x = fc2->forward(x);
+    return x;
+  }
+
+  torch::nn::Linear fc1{nullptr}, fc2{nullptr};
+};
+```
+
+### TorchScript: Model Export
+
+Load Python-trained models in C++ for production inference:
+
+```cpp
+#include <torch/script.h>
+
+// Load the model
+torch::jit::script::Module module = torch::jit::load("model.pt");
+
+// Create inputs
+std::vector<torch::jit::IValue> inputs;
+inputs.push_back(torch::ones({1, 3, 224, 224}));
+
+// Execute the model
+at::Tensor output = module.forward(inputs).toTensor();
+```
+
+## API Stability
+
+<Warning>
+Unless you have a particular reason to constrain yourself exclusively to ATen or the Autograd API, the **C++ frontend is the recommended entry point** to the PyTorch C++ ecosystem. While still in beta, it provides both more functionality and better stability guarantees.
+</Warning>
+
+## Next Steps
+
+<Steps>
+  <Step title="Install LibTorch">
+    Download and set up the LibTorch distribution for your platform
+    
+    [Installation Guide →](/cpp/installation)
+  </Step>
+  
+  <Step title="Learn Tensor Operations">
+    Understand the core Tensor API and ATen operations
+    
+    [Tensor API →](/cpp/tensors)
+  </Step>
+  
+  <Step title="Use Autograd">
+    Enable automatic differentiation for your computations
+    
+    [Autograd API →](/cpp/autograd)
+  </Step>
+  
+  <Step title="Build Models">
+    Create neural network modules using the C++ frontend
+    
+    [Module API →](/cpp/modules)
+  </Step>
+</Steps>
+
+## Resources
+
+- [Official C++ API Documentation](https://pytorch.org/cppdocs/)
+- [C++ Examples Repository](https://github.com/pytorch/examples/tree/master/cpp)
+- [PyTorch Forums](https://discuss.pytorch.org/)
+- [GitHub Issues](https://github.com/pytorch/pytorch/issues)

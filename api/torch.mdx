@@ -1,0 +1,470 @@
+---
+title: 'torch - Main Module'
+description: 'PyTorch main module API reference with core functions for tensor operations'
+---
+
+## Overview
+
+The `torch` package contains data structures for multi-dimensional tensors and defines mathematical operations over these tensors. It provides utilities for efficient serialization and CUDA support for GPU computation.
+
+## Core Functions
+
+### Tensor Creation
+
+<AccordionGroup>
+  <Accordion title="torch.tensor()">
+    Creates a tensor from data.
+    
+    <ParamField path="data" type="array_like" required>
+      Initial data for the tensor. Can be a list, tuple, NumPy ndarray, scalar, and other types.
+    </ParamField>
+    
+    <ParamField path="dtype" type="torch.dtype">
+      The desired data type of returned tensor. If None, infers data type from data.
+    </ParamField>
+    
+    <ParamField path="device" type="torch.device">
+      The desired device of returned tensor. Default: CPU for CPU tensor types, current CUDA device for CUDA tensor types.
+    </ParamField>
+    
+    <ParamField path="requires_grad" type="bool" default="False">
+      If autograd should record operations on the returned tensor.
+    </ParamField>
+    
+    <ParamField path="pin_memory" type="bool" default="False">
+      If set, returned tensor would be allocated in pinned memory. Works only for CPU tensors.
+    </ParamField>
+    
+    ```python
+    import torch
+    
+    # Create tensor from list
+    x = torch.tensor([[1, 2], [3, 4]])
+    
+    # Create with specific dtype
+    y = torch.tensor([1.0, 2.0], dtype=torch.float32)
+    
+    # Create on CUDA device
+    z = torch.tensor([1, 2, 3], device='cuda')
+    ```
+  </Accordion>
+
+  <Accordion title="torch.zeros()">
+    Returns a tensor filled with the scalar value 0.
+    
+    <ParamField path="*size" type="int" required>
+      A sequence of integers defining the shape of the output tensor.
+    </ParamField>
+    
+    <ParamField path="dtype" type="torch.dtype">
+      The desired data type. Default: global default dtype.
+    </ParamField>
+    
+    <ParamField path="device" type="torch.device">
+      The desired device of returned tensor.
+    </ParamField>
+    
+    <ParamField path="requires_grad" type="bool" default="False">
+      If autograd should record operations on the returned tensor.
+    </ParamField>
+    
+    ```python
+    # Create 3x4 zero matrix
+    x = torch.zeros(3, 4)
+    # tensor([[0., 0., 0., 0.],
+    #         [0., 0., 0., 0.],
+    #         [0., 0., 0., 0.]])
+    ```
+  </Accordion>
+
+  <Accordion title="torch.ones()">
+    Returns a tensor filled with the scalar value 1.
+    
+    <ParamField path="*size" type="int" required>
+      A sequence of integers defining the shape of the output tensor.
+    </ParamField>
+    
+    <ParamField path="dtype" type="torch.dtype">
+      The desired data type. Default: global default dtype.
+    </ParamField>
+    
+    <ParamField path="device" type="torch.device">
+      The desired device of returned tensor.
+    </ParamField>
+    
+    ```python
+    x = torch.ones(2, 3)
+    # tensor([[1., 1., 1.],
+    #         [1., 1., 1.]])
+    ```
+  </Accordion>
+
+  <Accordion title="torch.rand()">
+    Returns a tensor filled with random numbers from a uniform distribution on the interval [0, 1).
+    
+    <ParamField path="*size" type="int" required>
+      A sequence of integers defining the shape of the output tensor.
+    </ParamField>
+    
+    <ParamField path="generator" type="torch.Generator">
+      A pseudorandom number generator for sampling.
+    </ParamField>
+    
+    <ParamField path="dtype" type="torch.dtype">
+      The desired data type. Default: global default dtype.
+    </ParamField>
+    
+    <ParamField path="device" type="torch.device">
+      The desired device of returned tensor.
+    </ParamField>
+    
+    ```python
+    x = torch.rand(2, 3)
+    # tensor([[0.1234, 0.5678, 0.9012],
+    #         [0.3456, 0.7890, 0.2345]])
+    ```
+  </Accordion>
+
+  <Accordion title="torch.randn()">
+    Returns a tensor filled with random numbers from a normal distribution with mean 0 and variance 1.
+    
+    <ParamField path="*size" type="int" required>
+      A sequence of integers defining the shape of the output tensor.
+    </ParamField>
+    
+    <ParamField path="generator" type="torch.Generator">
+      A pseudorandom number generator for sampling.
+    </ParamField>
+    
+    <ParamField path="dtype" type="torch.dtype">
+      The desired data type. Default: global default dtype.
+    </ParamField>
+    
+    ```python
+    x = torch.randn(2, 3)
+    # tensor([[-0.5423,  0.2347, -1.3478],
+    #         [ 1.5678, -0.7890,  0.4567]])
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Mathematical Operations
+
+<AccordionGroup>
+  <Accordion title="torch.abs()">
+    Computes the absolute value of each element in input.
+    
+    <ParamField path="input" type="Tensor" required>
+      The input tensor.
+    </ParamField>
+    
+    <ParamField path="out" type="Tensor">
+      The output tensor.
+    </ParamField>
+    
+    **Formula:** `out_i = |input_i|`
+    
+    ```python
+    >>> torch.abs(torch.tensor([-1, -2, 3]))
+    tensor([1, 2, 3])
+    ```
+  </Accordion>
+
+  <Accordion title="torch.add()">
+    Adds other, scaled by alpha, to input.
+    
+    <ParamField path="input" type="Tensor" required>
+      The first input tensor.
+    </ParamField>
+    
+    <ParamField path="other" type="Tensor" required>
+      The second input tensor or scalar.
+    </ParamField>
+    
+    <ParamField path="alpha" type="Number" default="1">
+      The multiplier for other.
+    </ParamField>
+    
+    **Formula:** `out = input + alpha × other`
+    
+    ```python
+    >>> a = torch.tensor([1, 2, 3])
+    >>> b = torch.tensor([4, 5, 6])
+    >>> torch.add(a, b, alpha=2)
+    tensor([9, 12, 15])
+    ```
+  </Accordion>
+
+  <Accordion title="torch.matmul()">
+    Matrix product of two tensors with broadcasting support.
+    
+    <ParamField path="input" type="Tensor" required>
+      The first tensor to be multiplied.
+    </ParamField>
+    
+    <ParamField path="other" type="Tensor" required>
+      The second tensor to be multiplied.
+    </ParamField>
+    
+    <ParamField path="out" type="Tensor">
+      The output tensor.
+    </ParamField>
+    
+    The behavior depends on the dimensionality of the tensors:
+    - If both tensors are 1-dimensional, the dot product (scalar) is returned.
+    - If both arguments are 2-dimensional, the matrix-matrix product is returned.
+    - If the first argument is 1-dimensional and the second argument is 2-dimensional, a 1 is prepended to its dimension for the purpose of the matrix multiply. After the matrix multiply, the prepended dimension is removed.
+    - If the first argument is 2-dimensional and the second argument is 1-dimensional, the matrix-vector product is returned.
+    
+    ```python
+    # Matrix multiplication
+    >>> a = torch.randn(2, 3)
+    >>> b = torch.randn(3, 4)
+    >>> torch.matmul(a, b).shape
+    torch.Size([2, 4])
+    
+    # Batch matrix multiplication
+    >>> a = torch.randn(10, 3, 4)
+    >>> b = torch.randn(10, 4, 5)
+    >>> torch.matmul(a, b).shape
+    torch.Size([10, 3, 5])
+    ```
+  </Accordion>
+
+  <Accordion title="torch.sum()">
+    Returns the sum of all elements in the input tensor.
+    
+    <ParamField path="input" type="Tensor" required>
+      The input tensor.
+    </ParamField>
+    
+    <ParamField path="dim" type="int or tuple of ints">
+      The dimension or dimensions to reduce. If None, all dimensions are reduced.
+    </ParamField>
+    
+    <ParamField path="keepdim" type="bool" default="False">
+      Whether the output tensor has dim retained or not.
+    </ParamField>
+    
+    <ParamField path="dtype" type="torch.dtype">
+      The desired data type of returned tensor. If specified, the input tensor is casted to dtype before operation.
+    </ParamField>
+    
+    ```python
+    >>> a = torch.randn(4, 4)
+    >>> torch.sum(a)
+    tensor(-2.4567)
+    
+    >>> torch.sum(a, dim=0)
+    tensor([-0.5, 1.2, -0.8, 0.3])
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Utilities
+
+<AccordionGroup>
+  <Accordion title="torch.save()">
+    Saves an object to a disk file.
+    
+    <ParamField path="obj" type="object" required>
+      The saved object (can be a tensor, model state_dict, or any picklable Python object).
+    </ParamField>
+    
+    <ParamField path="f" type="str or file-like object" required>
+      A file-like object (has to implement write and flush) or a string containing a file name.
+    </ParamField>
+    
+    ```python
+    # Save a tensor
+    x = torch.tensor([1, 2, 3])
+    torch.save(x, 'tensor.pt')
+    
+    # Save a model's state dict
+    torch.save(model.state_dict(), 'model_weights.pth')
+    ```
+  </Accordion>
+
+  <Accordion title="torch.load()">
+    Loads an object saved with torch.save() from a file.
+    
+    <ParamField path="f" type="str or file-like object" required>
+      A file-like object or a string containing a file name.
+    </ParamField>
+    
+    <ParamField path="map_location" type="function, torch.device, string or dict">
+      A function, torch.device, string or dict specifying how to remap storage locations.
+    </ParamField>
+    
+    <ParamField path="weights_only" type="bool" default="False">
+      If True, only loads tensors, primitive types, and dictionaries.
+    </ParamField>
+    
+    ```python
+    # Load a tensor
+    x = torch.load('tensor.pt')
+    
+    # Load model weights
+    model.load_state_dict(torch.load('model_weights.pth'))
+    
+    # Load to specific device
+    model = torch.load('model.pth', map_location='cuda:0')
+    ```
+  </Accordion>
+
+  <Accordion title="torch.manual_seed()">
+    Sets the seed for generating random numbers. Returns a torch.Generator object.
+    
+    <ParamField path="seed" type="int" required>
+      The desired seed value.
+    </ParamField>
+    
+    ```python
+    torch.manual_seed(42)
+    x = torch.randn(2, 3)
+    # Results are now reproducible
+    ```
+  </Accordion>
+
+  <Accordion title="torch.set_default_device()">
+    Sets the default torch.Tensor device.
+    
+    <ParamField path="device" type="torch.device or str" required>
+      The device to set as default.
+    </ParamField>
+    
+    ```python
+    torch.set_default_device('cuda')
+    x = torch.randn(2, 3)  # Now on CUDA by default
+    ```
+  </Accordion>
+
+  <Accordion title="torch.set_float32_matmul_precision()">
+    Sets the internal precision of float32 matrix multiplications.
+    
+    <ParamField path="precision" type="str" required>
+      Can be "highest", "high", or "medium".
+    </ParamField>
+    
+    Running float32 matrix multiplications in lower precision may significantly increase performance:
+    - **"highest"**: float32 datatype (24 mantissa bits) for internal computations
+    - **"high"**: TensorFloat32 datatype (10 mantissa bits) or bfloat16-based algorithm
+    - **"medium"**: bfloat16 datatype (8 mantissa bits) for internal computations
+    
+    ```python
+    torch.set_float32_matmul_precision('high')
+    # Float32 matmuls now use TensorFloat32 for speed
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Configuration
+
+<AccordionGroup>
+  <Accordion title="torch.use_deterministic_algorithms()">
+    Sets whether PyTorch operations must use deterministic algorithms.
+    
+    <ParamField path="mode" type="bool" required>
+      If True, operations switch to deterministic algorithm or throw runtime error.
+    </ParamField>
+    
+    <ParamField path="warn_only" type="bool" default="False">
+      If True, operations without deterministic implementation throw warning instead of error.
+    </ParamField>
+    
+    ```python
+    torch.use_deterministic_algorithms(True)
+    # Now all operations use deterministic algorithms
+    ```
+  </Accordion>
+
+  <Accordion title="torch.is_tensor()">
+    Returns True if obj is a PyTorch tensor.
+    
+    <ParamField path="obj" type="object" required>
+      Object to test.
+    </ParamField>
+    
+    <ResponseField name="return" type="bool">
+      True if obj is a PyTorch tensor.
+    </ResponseField>
+    
+    ```python
+    >>> torch.is_tensor(torch.tensor([1, 2, 3]))
+    True
+    >>> torch.is_tensor([1, 2, 3])
+    False
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Symbolic Types
+
+### SymInt, SymFloat, SymBool
+
+PyTorch provides symbolic types for dynamic shape tracking and symbolic computation:
+
+<CodeGroup>
+```python SymInt Example
+import torch
+
+# SymInt tracks symbolic integer values
+x = torch.randn(torch.SymInt(10), 20)
+print(x.shape)  # torch.Size([s0, 20])
+```
+
+```python SymFloat Example
+import torch
+
+# SymFloat for symbolic floating point
+value = torch.sym_float(3.14)
+result = value * 2
+```
+
+```python Symbolic Operations
+import torch
+
+# Symbolic min/max without branching
+a = torch.sym_int(5)
+b = torch.sym_int(10)
+max_val = torch.sym_max(a, b)
+min_val = torch.sym_min(a, b)
+```
+</CodeGroup>
+
+## Best Practices
+
+<Accordion title="Tensor Creation Performance">
+  - Use `torch.empty()` when you'll immediately fill the tensor
+  - Use `torch.zeros_like()` and `torch.ones_like()` to match existing tensor properties
+  - Specify `device='cuda'` directly during creation to avoid CPU→GPU copy
+</Accordion>
+
+<Accordion title="Reproducibility">
+  Set all random seeds for reproducible results:
+  ```python
+  torch.manual_seed(42)
+  if torch.cuda.is_available():
+      torch.cuda.manual_seed_all(42)
+  ```
+</Accordion>
+
+<Accordion title="Memory Management">
+  - Use `torch.no_grad()` context when not training to reduce memory usage
+  - Call `del` on large tensors and `torch.cuda.empty_cache()` to free GPU memory
+  - Use gradient checkpointing for large models
+</Accordion>
+
+## Related APIs
+
+<CardGroup cols={2}>
+  <Card title="Tensor API" icon="cube" href="/api/tensor">
+    Tensor class methods and operations
+  </Card>
+  <Card title="Autograd API" icon="arrows-rotate" href="/api/autograd">
+    Automatic differentiation functions
+  </Card>
+  <Card title="CUDA API" icon="microchip" href="/api/cuda">
+    GPU acceleration with CUDA
+  </Card>
+</CardGroup>

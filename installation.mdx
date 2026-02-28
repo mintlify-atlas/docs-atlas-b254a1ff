@@ -1,0 +1,335 @@
+---
+title: Installation
+description: Install PyTorch using pip, conda, or build from source
+---
+
+# Installation
+
+PyTorch can be installed via package managers or built from source. Choose the installation method that best fits your needs.
+
+## Prerequisites
+
+Before installing PyTorch, ensure you have:
+
+- Python 3.10 or later
+- pip or conda package manager
+- (Optional) CUDA-capable GPU for GPU acceleration
+
+## Quick Install
+
+<Tip>
+  For most users, we recommend installing the pre-built binaries using pip or conda. Visit [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/) to get the exact command for your system configuration.
+</Tip>
+
+### Install with pip
+
+<CodeGroup>
+
+```bash CPU Only
+# Install PyTorch for CPU
+pip install torch torchvision torchaudio
+```
+
+```bash CUDA 12.1
+# Install PyTorch with CUDA 12.1 support
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+```bash CUDA 11.8
+# Install PyTorch with CUDA 11.8 support
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+```bash ROCm 6.2
+# Install PyTorch with ROCm 6.2 support (AMD GPUs)
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2
+```
+
+</CodeGroup>
+
+### Install with conda
+
+<CodeGroup>
+
+```bash CPU Only
+# Install PyTorch for CPU
+conda install pytorch torchvision torchaudio cpuonly -c pytorch
+```
+
+```bash CUDA 12.1
+# Install PyTorch with CUDA 12.1 support
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+```
+
+```bash CUDA 11.8
+# Install PyTorch with CUDA 11.8 support
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+```
+
+</CodeGroup>
+
+## Verify Installation
+
+After installation, verify that PyTorch is working correctly:
+
+<CodeGroup>
+
+```python Test Import
+import torch
+
+# Print PyTorch version
+print(f"PyTorch version: {torch.__version__}")
+
+# Create a simple tensor
+x = torch.rand(5, 3)
+print(f"Random tensor:\n{x}")
+```
+
+```python Test CUDA
+import torch
+
+# Check if CUDA is available
+print(f"CUDA available: {torch.cuda.is_available()}")
+
+if torch.cuda.is_available():
+    print(f"CUDA version: {torch.version.cuda}")
+    print(f"Number of GPUs: {torch.cuda.device_count()}")
+    print(f"Current GPU: {torch.cuda.get_device_name(0)}")
+    
+    # Create tensor on GPU
+    x = torch.rand(5, 3).cuda()
+    print(f"Tensor on GPU:\n{x}")
+```
+
+</CodeGroup>
+
+## Building from Source
+
+<Warning>
+  Building from source requires significant disk space (10+ GB) and compilation time (30-60 minutes). Only do this if you need the latest features or custom builds.
+</Warning>
+
+### Prerequisites for Building
+
+If you are installing from source, you will need:
+
+- Python 3.10 or later
+- A C++20 compatible compiler (gcc 11.3.0+ on Linux, Clang on macOS)
+- At least 10 GB of free disk space
+- 30-60 minutes for the initial build
+
+<Note>
+  On Windows, you'll need Visual Studio 2022 or Visual Studio Build Tools. The build tools can be downloaded from [https://visualstudio.microsoft.com/visual-cpp-build-tools/](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+</Note>
+
+### Step 1: Set up environment
+
+<CodeGroup>
+
+```bash Linux/macOS
+# Create and activate conda environment
+source <CONDA_INSTALL_DIR>/bin/activate
+conda create -y -n pytorch_build python=3.11
+conda activate pytorch_build
+```
+
+```bash Windows
+# Create and activate conda environment
+source <CONDA_INSTALL_DIR>\Scripts\activate.bat
+conda create -y -n pytorch_build python=3.11
+conda activate pytorch_build
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
+```
+
+</CodeGroup>
+
+### Step 2: Clone PyTorch source
+
+```bash
+git clone https://github.com/pytorch/pytorch
+cd pytorch
+
+# If updating an existing checkout
+git submodule sync
+git submodule update --init --recursive
+```
+
+### Step 3: Install dependencies
+
+<CodeGroup>
+
+```bash Linux
+# Install build dependencies
+pip install --group dev
+
+# Install Intel MKL
+pip install mkl-static mkl-include
+
+# CUDA only: Add LAPACK support for GPU
+# Specify your CUDA version (e.g., 12.4)
+.ci/docker/common/install_magma_conda.sh 12.4
+
+# Optional: Install triton for torch.compile support
+export USE_XPU=1  # Only for Intel GPU
+make triton
+```
+
+```bash macOS
+# Install build dependencies
+pip install --group dev
+
+# Add MKL on Intel x86 processors
+pip install mkl-static mkl-include
+
+# Add these if torch.distributed is needed
+conda install pkg-config libuv
+```
+
+```bash Windows
+# Install build dependencies
+pip install --group dev
+pip install mkl-static mkl-include
+
+# If torch.distributed is needed
+conda install -c conda-forge libuv=1.51
+```
+
+</CodeGroup>
+
+### Step 4: Build PyTorch
+
+<CodeGroup>
+
+```bash Linux (CPU)
+# Set CMake prefix path for conda environment
+export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMAKE_PREFIX_PATH}"
+
+# Install PyTorch
+python -m pip install --no-build-isolation -v -e .
+```
+
+```bash Linux (CUDA)
+# Set CMake prefix path
+export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMAKE_PREFIX_PATH}"
+
+# Set CUDA path if non-standard location
+export PATH=/usr/local/cuda-12.4/bin:$PATH
+
+# Install PyTorch with CUDA support
+python -m pip install --no-build-isolation -v -e .
+```
+
+```bash Linux (ROCm)
+# For ROCm, run AMD build script first
+python tools/amd_build/build_amd.py
+
+# Set CMake prefix path
+export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMAKE_PREFIX_PATH}"
+
+# Install PyTorch with ROCm support
+python -m pip install --no-build-isolation -v -e .
+```
+
+```bash macOS
+# Install PyTorch
+python -m pip install --no-build-isolation -v -e .
+```
+
+```bash Windows (CPU)
+# Install PyTorch for CPU
+python -m pip install --no-build-isolation -v -e .
+```
+
+```bash Windows (CUDA)
+# Set up MKL environment variables
+set CMAKE_INCLUDE_PATH={Your directory}\mkl\include
+set LIB={Your directory}\mkl\lib;%LIB%
+
+# Install PyTorch with CUDA support
+python -m pip install --no-build-isolation -v -e .
+```
+
+</CodeGroup>
+
+### Build Options
+
+You can customize the build with environment variables:
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `USE_CUDA` | Enable CUDA support | 1 (if CUDA detected) |
+| `USE_ROCM` | Enable ROCm support | 0 |
+| `USE_XPU` | Enable Intel GPU support | 0 |
+| `USE_DISTRIBUTED` | Enable distributed training | 1 |
+| `BUILD_TEST` | Build C++ tests | 1 |
+| `USE_MKLDNN` | Use oneDNN for CPU acceleration | 1 |
+
+<Tip>
+  To disable CUDA support when building from source, set `USE_CUDA=0` before running the install command:
+  
+  ```bash
+  export USE_CUDA=0
+  python -m pip install --no-build-isolation -v -e .
+  ```
+</Tip>
+
+## Docker Installation
+
+You can also use pre-built Docker images:
+
+```bash
+# Pull and run the latest PyTorch image with GPU support
+docker run --gpus all --rm -ti --ipc=host pytorch/pytorch:latest
+
+# Run Python in the container
+python -c "import torch; print(torch.cuda.is_available())"
+```
+
+<Note>
+  PyTorch uses shared memory for multiprocessing. Use `--ipc=host` or `--shm-size` to increase shared memory size when using Docker.
+</Note>
+
+## Platform-Specific Notes
+
+### NVIDIA Jetson Platforms
+
+Python wheels for Jetson Nano, TX1/TX2, Xavier NX/AGX, and AGX Orin are available at the [NVIDIA Developer Forums](https://forums.developer.nvidia.com/t/pytorch-for-jetson). They require JetPack 4.2 and above.
+
+### Windows with Visual Studio
+
+On Windows, PyTorch supports Visual Studio 2019/2022 and Ninja as build generators. If `ninja.exe` is detected in PATH, Ninja will be used as the default generator.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="ImportError: cannot import name '_initExtension'">
+    This typically means PyTorch's C extensions failed to build or install correctly. Try:
+    
+    1. Reinstalling with `pip install --force-reinstall torch`
+    2. Building from source with verbose output: `python -m pip install --no-build-isolation -v -e .`
+    3. Checking that all dependencies are installed
+  </Accordion>
+  
+  <Accordion title="CUDA out of memory errors">
+    If you encounter out-of-memory errors:
+    
+    1. Reduce batch size
+    2. Use gradient checkpointing for large models
+    3. Enable mixed precision training with `torch.cuda.amp`
+    4. Clear cache with `torch.cuda.empty_cache()`
+  </Accordion>
+  
+  <Accordion title="Slow build from source">
+    Initial builds take 30-60 minutes. Subsequent rebuilds are much faster. To speed up:
+    
+    1. Use `MAX_JOBS` environment variable to control parallelism: `export MAX_JOBS=4`
+    2. Disable tests if not needed: `export BUILD_TEST=0`
+    3. Use `ccache` for C++ compilation caching
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<Card title="Quick Start Guide" icon="bolt" href="/quickstart">
+  Now that PyTorch is installed, learn the basics with our hands-on quick start guide
+</Card>

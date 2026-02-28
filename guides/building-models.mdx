@@ -1,0 +1,384 @@
+---
+title: Building Neural Network Models
+description: Build neural network models using torch.nn.Module and PyTorch's built-in layers
+---
+
+## Overview
+
+PyTorch provides `torch.nn.Module` as the base class for all neural network modules. This guide covers how to build custom models using PyTorch's modular architecture.
+
+## Basic Model Structure
+
+Every neural network in PyTorch inherits from `nn.Module` and implements a `forward` method:
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class SimpleNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(784, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 10)
+    
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+# Instantiate the model
+model = SimpleNet()
+```
+
+<Tip>
+Always call `super().__init__()` in your model's `__init__` method to properly initialize the parent `nn.Module` class.
+</Tip>
+
+## Core Building Blocks
+
+### Linear Layers
+
+The `nn.Linear` module applies an affine transformation: `y = xA^T + b`
+
+```python
+# Linear(in_features, out_features, bias=True)
+fc = nn.Linear(20, 30)  # Input: 20 features, Output: 30 features
+input_tensor = torch.randn(128, 20)  # Batch of 128 samples
+output = fc(input_tensor)  # Shape: [128, 30]
+```
+
+**Parameters:**
+- `in_features` (int): Size of each input sample
+- `out_features` (int): Size of each output sample  
+- `bias` (bool): If False, the layer will not learn an additive bias (default: True)
+
+### Convolutional Layers
+
+```python
+# Conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0)
+conv = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
+input_img = torch.randn(32, 3, 224, 224)  # [batch, channels, height, width]
+output = conv(input_img)  # Shape: [32, 64, 224, 224]
+```
+
+### Activation Functions
+
+<CodeGroup>
+```python ReLU
+# ReLU: max(0, x)
+relu = nn.ReLU()
+x = torch.randn(10)
+output = relu(x)
+
+# Or use functional API
+output = F.relu(x)
+```
+
+```python LeakyReLU
+# LeakyReLU: max(0.01*x, x)
+leaky_relu = nn.LeakyReLU(negative_slope=0.01)
+output = leaky_relu(x)
+```
+
+```python GELU
+# GELU: Gaussian Error Linear Unit
+gelu = nn.GELU()
+output = gelu(x)
+```
+</CodeGroup>
+
+### Normalization Layers
+
+```python
+# BatchNorm2d normalizes over the batch dimension
+batch_norm = nn.BatchNorm2d(64)  # 64 channels
+x = torch.randn(32, 64, 28, 28)
+normalized = batch_norm(x)
+
+# LayerNorm normalizes over specified dimensions
+layer_norm = nn.LayerNorm(128)
+x = torch.randn(32, 10, 128)
+normalized = layer_norm(x)
+```
+
+### Dropout
+
+```python
+# Dropout randomly zeroes elements during training
+dropout = nn.Dropout(p=0.5)  # 50% dropout probability
+x = torch.randn(32, 128)
+output = dropout(x)  # Only active during training
+```
+
+## Building Complex Models
+
+### Using Sequential Containers
+
+`nn.Sequential` allows you to chain modules together:
+
+<CodeGroup>
+```python Ordered Layers
+model = nn.Sequential(
+    nn.Linear(784, 256),
+    nn.ReLU(),
+    nn.Dropout(0.2),
+    nn.Linear(256, 128),
+    nn.ReLU(),
+    nn.Dropout(0.2),
+    nn.Linear(128, 10)
+)
+```
+
+```python Named Layers
+from collections import OrderedDict
+
+model = nn.Sequential(OrderedDict([
+    ('fc1', nn.Linear(784, 256)),
+    ('relu1', nn.ReLU()),
+    ('dropout1', nn.Dropout(0.2)),
+    ('fc2', nn.Linear(256, 128)),
+    ('relu2', nn.ReLU()),
+    ('dropout2', nn.Dropout(0.2)),
+    ('fc3', nn.Linear(128, 10))
+]))
+```
+</CodeGroup>
+
+### CNN Architecture Example
+
+```python
+class ConvNet(nn.Module):
+    def __init__(self, num_classes=10):
+        super().__init__()
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        
+        # Batch normalization
+        self.bn1 = nn.BatchNorm2d(32)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.bn3 = nn.BatchNorm2d(128)
+        
+        # Pooling and dropout
+        self.pool = nn.MaxPool2d(2, 2)
+        self.dropout = nn.Dropout(0.25)
+        
+        # Fully connected layers
+        self.fc1 = nn.Linear(128 * 4 * 4, 512)
+        self.fc2 = nn.Linear(512, num_classes)
+    
+    def forward(self, x):
+        # Conv block 1
+        x = self.pool(F.relu(self.bn1(self.conv1(x))))
+        
+        # Conv block 2
+        x = self.pool(F.relu(self.bn2(self.conv2(x))))
+        
+        # Conv block 3
+        x = self.pool(F.relu(self.bn3(self.conv3(x))))
+        
+        # Flatten
+        x = x.view(x.size(0), -1)
+        
+        # Fully connected layers
+        x = self.dropout(F.relu(self.fc1(x)))
+        x = self.fc2(x)
+        
+        return x
+
+model = ConvNet(num_classes=10)
+```
+
+### Residual Networks
+
+```python
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1):
+        super().__init__()
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, 
+                               stride=stride, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3,
+                               stride=1, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+        
+        # Shortcut connection
+        self.shortcut = nn.Sequential()
+        if stride != 1 or in_channels != out_channels:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1,
+                          stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels)
+            )
+    
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        out += self.shortcut(x)  # Skip connection
+        out = F.relu(out)
+        return out
+```
+
+## Module Parameters
+
+### Registering Parameters
+
+```python
+class CustomLayer(nn.Module):
+    def __init__(self, in_features, out_features):
+        super().__init__()
+        # Register learnable parameters
+        self.weight = nn.Parameter(torch.randn(out_features, in_features))
+        self.bias = nn.Parameter(torch.zeros(out_features))
+    
+    def forward(self, x):
+        return F.linear(x, self.weight, self.bias)
+```
+
+### Accessing Parameters
+
+```python
+model = SimpleNet()
+
+# Iterate over all parameters
+for name, param in model.named_parameters():
+    print(f"{name}: {param.shape}")
+
+# Count total parameters
+total_params = sum(p.numel() for p in model.parameters())
+print(f"Total parameters: {total_params:,}")
+
+# Trainable parameters only
+trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+```
+
+## Model Modes
+
+### Training vs Evaluation Mode
+
+<Steps>
+  <Step title="Set training mode">
+    Enable dropout and batch normalization training behavior:
+    ```python
+    model.train()
+    ```
+  </Step>
+  
+  <Step title="Set evaluation mode">
+    Disable dropout and use running statistics for batch normalization:
+    ```python
+    model.eval()
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+Always call `model.eval()` before inference and `model.train()` before training. This affects layers like Dropout and BatchNorm that behave differently during training and evaluation.
+</Warning>
+
+## ModuleList and ModuleDict
+
+### ModuleList
+
+```python
+class DynamicNet(nn.Module):
+    def __init__(self, num_layers):
+        super().__init__()
+        # Use ModuleList to store multiple layers
+        self.layers = nn.ModuleList([
+            nn.Linear(128, 128) for _ in range(num_layers)
+        ])
+        self.output = nn.Linear(128, 10)
+    
+    def forward(self, x):
+        for layer in self.layers:
+            x = F.relu(layer(x))
+        return self.output(x)
+```
+
+### ModuleDict
+
+```python
+class MultiTaskModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.backbone = nn.Sequential(
+            nn.Linear(784, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128)
+        )
+        
+        # Use ModuleDict for task-specific heads
+        self.heads = nn.ModuleDict({
+            'classification': nn.Linear(128, 10),
+            'regression': nn.Linear(128, 1),
+            'segmentation': nn.Linear(128, 100)
+        })
+    
+    def forward(self, x, task='classification'):
+        features = self.backbone(x)
+        return self.heads[task](features)
+```
+
+## Device Management
+
+```python
+# Move model to GPU
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = SimpleNet().to(device)
+
+# Or specify GPU index
+model = SimpleNet().to('cuda:0')
+
+# Move input data to the same device
+input_data = torch.randn(32, 784).to(device)
+output = model(input_data)
+```
+
+## Weight Initialization
+
+```python
+def init_weights(m):
+    if isinstance(m, nn.Linear):
+        nn.init.xavier_uniform_(m.weight)
+        if m.bias is not None:
+            nn.init.zeros_(m.bias)
+    elif isinstance(m, nn.Conv2d):
+        nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+    elif isinstance(m, nn.BatchNorm2d):
+        nn.init.ones_(m.weight)
+        nn.init.zeros_(m.bias)
+
+# Apply initialization
+model = ConvNet()
+model.apply(init_weights)
+```
+
+## Best Practices
+
+<Accordion title="Model design tips">
+- Use `nn.Sequential` for simple layer chains
+- Use `nn.ModuleList` when you need to iterate over layers
+- Use `nn.ModuleDict` for conditional execution paths
+- Always register submodules as class attributes (not in lists/dicts) so parameters are tracked
+- Use batch normalization to stabilize training
+- Apply dropout for regularization
+</Accordion>
+
+<Accordion title="Common pitfalls">
+- Forgetting to call `super().__init__()` in custom modules
+- Using Python lists instead of `nn.ModuleList` (parameters won't be registered)
+- Not moving both model and data to the same device
+- Not calling `model.eval()` during inference
+- Hardcoding tensor dimensions in forward pass
+</Accordion>
+
+## Next Steps
+
+- Learn about [training models](/guides/training)
+- Understand [model inference](/guides/inference)
+- Explore [saving and loading models](/guides/saving-loading)

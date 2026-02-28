@@ -1,0 +1,465 @@
+---
+title: 'torch.sparse'
+description: 'Sparse tensor operations and formats'
+---
+
+# Sparse Tensors
+
+The `torch.sparse` module provides support for sparse tensors in multiple formats including COO, CSR, CSC, BSR, and BSC layouts.
+
+## Sparse Tensor Formats
+
+PyTorch supports several sparse tensor formats:
+
+- **COO** (Coordinate format): Stores indices and values separately
+- **CSR** (Compressed Sparse Row): Row-compressed format
+- **CSC** (Compressed Sparse Column): Column-compressed format  
+- **BSR** (Block Sparse Row): Block-based row-compressed format
+- **BSC** (Block Sparse Column): Block-based column-compressed format
+
+## Construction
+
+### Creating COO Tensors
+
+```python
+torch.sparse_coo_tensor(
+    indices,
+    values,
+    size=None,
+    dtype=None,
+    device=None,
+    requires_grad=False,
+    check_invariants=None
+)
+```
+
+Constructs a sparse COO tensor.
+
+<ParamField path="indices" type="Tensor">
+  2D tensor of shape `(ndim, nnz)` containing indices of non-zero elements.
+</ParamField>
+
+<ParamField path="values" type="Tensor">
+  1D tensor of shape `(nnz,)` containing values.
+</ParamField>
+
+<ParamField path="size" type="tuple" default="None">
+  Size of the sparse tensor. If None, inferred from indices.
+</ParamField>
+
+### Creating CSR Tensors
+
+```python
+torch.sparse_csr_tensor(
+    crow_indices,
+    col_indices,
+    values,
+    size=None,
+    dtype=None,
+    device=None,
+    requires_grad=False,
+    check_invariants=None
+)
+```
+
+Constructs a sparse CSR tensor.
+
+<ParamField path="crow_indices" type="Tensor">
+  Compressed row indices.
+</ParamField>
+
+<ParamField path="col_indices" type="Tensor">
+  Column indices.
+</ParamField>
+
+<ParamField path="values" type="Tensor">
+  Values of non-zero elements.
+</ParamField>
+
+## Conversion
+
+### to_sparse
+
+```python
+Tensor.to_sparse(
+    sparseDims=None,
+    *,
+    layout=None,
+    blocksize=None,
+    dense_dim=None
+)
+```
+
+Converts a dense tensor to sparse format.
+
+<ParamField path="layout" type="torch.layout" default="None">
+  Desired sparse layout. Options: `torch.sparse_coo`, `torch.sparse_csr`, etc.
+</ParamField>
+
+<ParamField path="blocksize" type="tuple" default="None">
+  Block size for block sparse formats (BSR/BSC).
+</ParamField>
+
+### to_dense
+
+```python
+Tensor.to_dense(masked_grad=False)
+```
+
+Converts a sparse tensor to dense format.
+
+<ParamField path="masked_grad" type="bool" default="False">
+  Whether to mask gradients by the sparsity pattern.
+</ParamField>
+
+## Arithmetic Operations
+
+### addmm
+
+```python
+torch.sparse.addmm(
+    mat,
+    mat1,
+    mat2,
+    *,
+    beta=1.0,
+    alpha=1.0
+)
+```
+
+Performs matrix multiplication with sparse matrix support: `mat + alpha * (mat1 @ mat2) * beta`.
+
+<ParamField path="mat" type="Tensor">
+  Dense matrix to be added.
+</ParamField>
+
+<ParamField path="mat1" type="Tensor">
+  Sparse matrix (COO or CSR) to be multiplied.
+</ParamField>
+
+<ParamField path="mat2" type="Tensor">
+  Dense matrix to be multiplied.
+</ParamField>
+
+<ParamField path="beta" type="float" default="1.0">
+  Multiplier for `mat`.
+</ParamField>
+
+<ParamField path="alpha" type="float" default="1.0">
+  Multiplier for the matrix product.
+</ParamField>
+
+### mm
+
+```python
+torch.sparse.mm(
+    mat1,
+    mat2,
+    reduce='sum'
+)
+```
+
+Performs matrix multiplication of sparse and dense/sparse matrices.
+
+<ParamField path="mat1" type="Tensor">
+  Sparse matrix (first operand).
+</ParamField>
+
+<ParamField path="mat2" type="Tensor">
+  Dense or sparse matrix (second operand).
+</ParamField>
+
+<ParamField path="reduce" type="str" default="'sum'">
+  Reduction operation for duplicate indices. Options: `'sum'`, `'mean'`, `'amax'`, `'amin'`.
+</ParamField>
+
+### sampled_addmm
+
+```python
+torch.sparse.sampled_addmm(
+    input,
+    mat1,
+    mat2,
+    *,
+    beta=1.0,
+    alpha=1.0,
+    out=None
+)
+```
+
+Performs matrix multiplication sampled at the sparsity pattern of `input`.
+
+<ParamField path="input" type="Tensor">
+  Sparse CSR tensor defining the sampling pattern.
+</ParamField>
+
+<ParamField path="mat1" type="Tensor">
+  Dense matrix of shape `(m, k)`.
+</ParamField>
+
+<ParamField path="mat2" type="Tensor">
+  Dense matrix of shape `(k, n)`.
+</ParamField>
+
+## Reduction Operations
+
+### sum
+
+```python
+torch.sparse.sum(
+    input,
+    dim=None,
+    dtype=None
+)
+```
+
+Returns the sum of each row of the sparse tensor.
+
+<ParamField path="input" type="Tensor">
+  Sparse tensor to sum.
+</ParamField>
+
+<ParamField path="dim" type="int or tuple" default="None">
+  Dimension(s) to reduce. If None, reduce all dimensions.
+</ParamField>
+
+<ParamField path="dtype" type="torch.dtype" default="None">
+  Desired data type of output.
+</ParamField>
+
+### softmax
+
+```python
+torch.sparse.softmax(
+    input,
+    dim,
+    *,
+    dtype=None
+)
+```
+
+Applies softmax to a sparse tensor along a dimension.
+
+<ParamField path="input" type="Tensor">
+  Sparse tensor input.
+</ParamField>
+
+<ParamField path="dim" type="int">
+  Dimension along which to apply softmax.
+</ParamField>
+
+### log_softmax
+
+```python
+torch.sparse.log_softmax(
+    input,
+    dim,
+    *,
+    dtype=None
+)
+```
+
+Applies log(softmax) to a sparse tensor.
+
+## Linear Algebra
+
+### spsolve (Sparse Solver)
+
+```python
+torch.sparse.spsolve(
+    input,
+    other,
+    *,
+    left=True
+)
+```
+
+Solves a sparse linear system.
+
+<ParamField path="input" type="Tensor">
+  Sparse CSR coefficient matrix of shape `(n, n)`.
+</ParamField>
+
+<ParamField path="other" type="Tensor">
+  Dense right-hand side of shape `(n,)`.
+</ParamField>
+
+<ParamField path="left" type="bool" default="True">
+  Whether to solve `input @ out = other` (True) or `out @ input = other` (False).
+</ParamField>
+
+## Utility Functions
+
+### spdiags
+
+```python
+torch.sparse.spdiags(
+    diagonals,
+    offsets,
+    shape,
+    layout=None
+)
+```
+
+Creates a sparse 2D tensor by placing values from rows of `diagonals` along specified diagonals.
+
+<ParamField path="diagonals" type="Tensor">
+  Matrix storing diagonals row-wise.
+</ParamField>
+
+<ParamField path="offsets" type="Tensor">
+  The diagonals to be set (0 = main diagonal, negative = below, positive = above).
+</ParamField>
+
+<ParamField path="shape" type="tuple">
+  Shape of the output tensor.
+</ParamField>
+
+<ParamField path="layout" type="torch.layout" default="None">
+  Desired layout. Options: `torch.sparse_coo`, `torch.sparse_csr`, `torch.sparse_csc`.
+</ParamField>
+
+## Example Usage
+
+<CodeGroup>
+```python Creating Sparse Tensors
+import torch
+
+# COO format
+indices = torch.tensor([[0, 1, 2], [0, 1, 2]])
+values = torch.tensor([1.0, 2.0, 3.0])
+sparse_coo = torch.sparse_coo_tensor(indices, values, size=(3, 3))
+print(f"COO sparse tensor:\n{sparse_coo}")
+print(f"Dense representation:\n{sparse_coo.to_dense()}")
+
+# CSR format
+crow_indices = torch.tensor([0, 1, 2, 3])
+col_indices = torch.tensor([0, 1, 2])
+values = torch.tensor([1.0, 2.0, 3.0])
+sparse_csr = torch.sparse_csr_tensor(crow_indices, col_indices, values, size=(3, 3))
+print(f"\nCSR sparse tensor:\n{sparse_csr}")
+
+# Convert dense to sparse
+dense = torch.tensor([[1, 0, 0], [0, 2, 0], [0, 0, 3]])
+sparse_from_dense = dense.to_sparse()
+print(f"\nConverted to sparse:\n{sparse_from_dense}")
+```
+
+```python Sparse Matrix Operations
+import torch
+
+# Create sparse matrices
+indices = torch.tensor([[0, 0, 1], [0, 2, 1]])
+values = torch.tensor([1.0, 2.0, 3.0])
+sparse_mat = torch.sparse_coo_tensor(indices, values, size=(2, 3))
+
+# Dense matrix for multiplication
+dense_mat = torch.randn(3, 4)
+
+# Sparse-dense matrix multiplication
+result = torch.sparse.mm(sparse_mat, dense_mat)
+print(f"Sparse @ Dense shape: {result.shape}")
+print(f"Result:\n{result}")
+
+# Verify with dense computation
+dense_result = sparse_mat.to_dense() @ dense_mat
+print(f"\nMatches dense: {torch.allclose(result, dense_result)}")
+
+# Sparse addmm
+mat = torch.zeros(2, 4)
+result = torch.sparse.addmm(mat, sparse_mat, dense_mat, beta=0.5, alpha=2.0)
+print(f"\nAddmm result shape: {result.shape}")
+```
+
+```python Sparse Reductions
+import torch
+
+# Create sparse tensor
+indices = torch.tensor([[0, 0, 1, 1, 2],
+                        [0, 1, 1, 2, 2]])
+values = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
+sparse = torch.sparse_coo_tensor(indices, values, size=(3, 3))
+
+print(f"Sparse tensor:\n{sparse.to_dense()}")
+
+# Sum over all elements
+total = torch.sparse.sum(sparse)
+print(f"\nTotal sum: {total}")
+
+# Sum along dimension 0 (columns)
+col_sums = torch.sparse.sum(sparse, dim=0)
+print(f"Column sums: {col_sums}")
+
+# Sum along dimension 1 (rows)  
+row_sums = torch.sparse.sum(sparse, dim=1)
+print(f"Row sums: {row_sums}")
+
+# Sparse softmax
+softmax_result = torch.sparse.softmax(sparse, dim=1)
+print(f"\nSparse softmax (dim=1):\n{softmax_result.to_dense()}")
+```
+
+```python Diagonal Matrices
+import torch
+
+# Create a tridiagonal matrix
+diagonals = torch.tensor([[1, 2, 3, 4],    # main diagonal
+                          [5, 6, 7, 0],    # first subdiagonal
+                          [8, 9, 0, 0]])   # second subdiagonal
+offsets = torch.tensor([0, -1, -2])
+
+sparse_tri = torch.sparse.spdiags(diagonals, offsets, (4, 4))
+print(f"Tridiagonal sparse tensor:\n{sparse_tri.to_dense()}")
+
+# Create identity matrix
+diag = torch.ones(5)
+offsets = torch.tensor([0])
+identity = torch.sparse.spdiags(diag.unsqueeze(0), offsets, (5, 5))
+print(f"\nSparse identity:\n{identity.to_dense()}")
+```
+
+```python Sparse Linear Solver
+import torch
+
+# Create a sparse SPD matrix in CSR format
+A_dense = torch.tensor([[4.0, 1.0, 0.0],
+                        [1.0, 3.0, 1.0],
+                        [0.0, 1.0, 2.0]])
+A_sparse = A_dense.to_sparse_csr()
+
+# Right-hand side
+b = torch.tensor([1.0, 2.0, 3.0])
+
+# Solve Ax = b
+x = torch.sparse.spsolve(A_sparse, b)
+print(f"Solution: {x}")
+
+# Verify solution
+residual = A_dense @ x - b
+print(f"Residual norm: {torch.norm(residual):.6f}")
+```
+</CodeGroup>
+
+## Best Practices
+
+<Accordion title="Choosing Sparse Format">
+  - **COO**: Best for construction and random access patterns
+  - **CSR**: Optimized for row-wise operations and matrix-vector products
+  - **CSC**: Optimized for column-wise operations
+  - **BSR/BSC**: Use for block-structured sparsity (e.g., in neural networks)
+</Accordion>
+
+<Accordion title="Performance Considerations">
+  - Convert to CSR/CSC for repeated arithmetic operations
+  - Coalesce COO tensors before operations with `.coalesce()`
+  - Use `to_sparse()` only when sparsity is significant (>90% zeros)
+  - Batch sparse operations when possible
+  - Consider dense operations for small tensors or low sparsity
+</Accordion>
+
+<Accordion title="Gradient Support">
+  - COO @ Dense: Backward supported for both inputs
+  - CSR @ Dense: Backward supported for both inputs  
+  - Sparse @ Sparse: Forward works, backward not supported
+  - Use `masked_grad=True` in `to_dense()` to preserve sparsity pattern in gradients
+</Accordion>

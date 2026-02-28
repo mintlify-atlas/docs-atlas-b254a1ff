@@ -1,0 +1,561 @@
+---
+title: Optimizers and Learning Rate Scheduling
+description: Configure optimizers, learning rates, and schedulers to improve model training in PyTorch
+---
+
+## Overview
+
+Optimizers update model parameters based on computed gradients. This guide covers PyTorch's built-in optimizers and learning rate scheduling strategies.
+
+## Common Optimizers
+
+### SGD (Stochastic Gradient Descent)
+
+```python
+import torch.optim as optim
+
+# Basic SGD
+optimizer = optim.SGD(
+    model.parameters(),
+    lr=0.01,
+    momentum=0,
+    weight_decay=0,
+    nesterov=False
+)
+```
+
+**Parameters:**
+- `lr` (float): Learning rate (default: 1e-3)
+- `momentum` (float): Momentum factor (default: 0)
+- `weight_decay` (float): L2 penalty coefficient (default: 0)
+- `dampening` (float): Dampening for momentum (default: 0)
+- `nesterov` (bool): Enable Nesterov momentum (default: False)
+
+```python
+# SGD with momentum (recommended)
+optimizer = optim.SGD(
+    model.parameters(),
+    lr=0.1,
+    momentum=0.9,
+    weight_decay=1e-4,
+    nesterov=True
+)
+```
+
+<Tip>
+SGD with momentum often achieves better generalization than adaptive optimizers, especially for computer vision tasks. Use lr=0.1 with momentum=0.9 as a starting point.
+</Tip>
+
+### Adam
+
+```python
+optimizer = optim.Adam(
+    model.parameters(),
+    lr=1e-3,
+    betas=(0.9, 0.999),
+    eps=1e-8,
+    weight_decay=0,
+    amsgrad=False
+)
+```
+
+**Parameters:**
+- `lr` (float or Tensor): Learning rate (default: 1e-3)
+- `betas` (tuple[float, float]): Coefficients for computing running averages (default: (0.9, 0.999))
+- `eps` (float): Term added for numerical stability (default: 1e-8)
+- `weight_decay` (float): L2 penalty (default: 0)
+- `amsgrad` (bool): Use AMSGrad variant (default: False)
+- `foreach` (bool): Use multi-tensor implementation (default: None)
+- `maximize` (bool): Maximize parameters instead of minimize (default: False)
+- `capturable` (bool): Safe for CUDA graphs (default: False)
+- `differentiable` (bool): Autograd through optimizer step (default: False)
+- `fused` (bool): Use fused kernel (default: None)
+
+```python
+# Typical Adam configuration
+optimizer = optim.Adam(
+    model.parameters(),
+    lr=1e-3,
+    betas=(0.9, 0.999),
+    weight_decay=0
+)
+```
+
+### AdamW
+
+AdamW decouples weight decay from the gradient update:
+
+```python
+optimizer = optim.AdamW(
+    model.parameters(),
+    lr=1e-3,
+    betas=(0.9, 0.999),
+    eps=1e-8,
+    weight_decay=1e-2,  # Note: higher default than Adam
+    amsgrad=False
+)
+```
+
+**Parameters:**
+- `lr` (float or Tensor): Learning rate (default: 1e-3)
+- `betas` (tuple[float, float]): Coefficients for running averages (default: (0.9, 0.999))
+- `eps` (float): Numerical stability term (default: 1e-8)
+- `weight_decay` (float): Decoupled weight decay (default: 1e-2)
+- `amsgrad` (bool): Use AMSGrad variant (default: False)
+- `maximize` (bool): Maximize instead of minimize (default: False)
+- `foreach` (bool): Multi-tensor implementation (default: None)
+- `capturable` (bool): CUDA graph safe (default: False)
+- `differentiable` (bool): Enable autograd through step (default: False)
+- `fused` (bool): Use fused kernel (default: None)
+
+<CodeGroup>
+```python AdamW (Recommended)
+# Better weight decay regularization
+optimizer = optim.AdamW(
+    model.parameters(),
+    lr=1e-3,
+    weight_decay=1e-2
+)
+```
+
+```python Adam
+# Original Adam formulation
+optimizer = optim.Adam(
+    model.parameters(),
+    lr=1e-3,
+    weight_decay=1e-4
+)
+```
+</CodeGroup>
+
+<Warning>
+Prefer AdamW over Adam when using weight decay. Adam's weight decay implementation differs from L2 regularization, while AdamW correctly decouples them.
+</Warning>
+
+### Other Optimizers
+
+<CodeGroup>
+```python RMSprop
+optimizer = optim.RMSprop(
+    model.parameters(),
+    lr=1e-2,
+    alpha=0.99,
+    eps=1e-8,
+    weight_decay=0,
+    momentum=0
+)
+```
+
+```python Adagrad
+optimizer = optim.Adagrad(
+    model.parameters(),
+    lr=1e-2,
+    lr_decay=0,
+    weight_decay=0,
+    eps=1e-10
+)
+```
+
+```python Adadelta
+optimizer = optim.Adadelta(
+    model.parameters(),
+    lr=1.0,
+    rho=0.9,
+    eps=1e-6,
+    weight_decay=0
+)
+```
+</CodeGroup>
+
+## Optimizer Comparison
+
+| Optimizer | Best For | Learning Rate | Pros | Cons |
+|-----------|----------|---------------|------|------|
+| **SGD + Momentum** | Computer Vision, proven architectures | 0.1 - 0.01 | Best generalization, stable | Requires tuning, slower convergence |
+| **Adam** | Quick prototyping, NLP | 1e-3 - 1e-4 | Fast convergence, adaptive | Can overfit, worse generalization |
+| **AdamW** | Transformers, modern architectures | 1e-3 - 1e-4 | Proper weight decay, fast | May need tuning |
+| **RMSprop** | RNNs, non-stationary objectives | 1e-2 - 1e-3 | Handles non-stationary well | Less common now |
+
+## Learning Rate Schedulers
+
+### StepLR
+
+Decay learning rate by gamma every step_size epochs:
+
+```python
+from torch.optim.lr_scheduler import StepLR
+
+optimizer = optim.SGD(model.parameters(), lr=0.1)
+scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
+
+for epoch in range(100):
+    train_epoch()
+    validate()
+    scheduler.step()  # Update learning rate
+```
+
+### MultiStepLR
+
+Decay learning rate at specific milestones:
+
+```python
+from torch.optim.lr_scheduler import MultiStepLR
+
+optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+scheduler = MultiStepLR(optimizer, milestones=[30, 80], gamma=0.1)
+
+# lr = 0.1     for epochs 0-29
+# lr = 0.01    for epochs 30-79  
+# lr = 0.001   for epochs 80+
+```
+
+### CosineAnnealingLR
+
+Cosine annealing schedule:
+
+```python
+from torch.optim.lr_scheduler import CosineAnnealingLR
+
+optimizer = optim.SGD(model.parameters(), lr=0.1)
+scheduler = CosineAnnealingLR(optimizer, T_max=100, eta_min=1e-5)
+
+for epoch in range(100):
+    train_epoch()
+    scheduler.step()
+```
+
+<Tip>
+Cosine annealing is popular for training from scratch. It smoothly reduces the learning rate following a cosine curve.
+</Tip>
+
+### ReduceLROnPlateau
+
+Reduce learning rate when a metric stops improving:
+
+```python
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+
+optimizer = optim.Adam(model.parameters(), lr=1e-3)
+scheduler = ReduceLROnPlateau(
+    optimizer,
+    mode='min',           # 'min' for loss, 'max' for accuracy
+    factor=0.1,           # Multiply lr by 0.1
+    patience=10,          # Wait 10 epochs before reducing
+    verbose=True,
+    min_lr=1e-6
+)
+
+for epoch in range(100):
+    train_epoch()
+    val_loss = validate()
+    scheduler.step(val_loss)  # Pass metric to scheduler
+```
+
+### OneCycleLR
+
+One cycle learning rate policy (super-convergence):
+
+```python
+from torch.optim.lr_scheduler import OneCycleLR
+
+optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+scheduler = OneCycleLR(
+    optimizer,
+    max_lr=0.1,
+    epochs=100,
+    steps_per_epoch=len(train_loader),
+    pct_start=0.3,        # Percentage of cycle spent increasing lr
+    anneal_strategy='cos'
+)
+
+for epoch in range(100):
+    for batch in train_loader:
+        train_batch(batch)
+        scheduler.step()  # Step after each batch!
+```
+
+<Warning>
+With OneCycleLR, call `scheduler.step()` after each batch, not after each epoch.
+</Warning>
+
+### ExponentialLR
+
+```python
+from torch.optim.lr_scheduler import ExponentialLR
+
+optimizer = optim.Adam(model.parameters(), lr=1e-3)
+scheduler = ExponentialLR(optimizer, gamma=0.95)
+
+# lr *= 0.95 every epoch
+```
+
+### CosineAnnealingWarmRestarts
+
+```python
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+
+optimizer = optim.SGD(model.parameters(), lr=0.1)
+scheduler = CosineAnnealingWarmRestarts(
+    optimizer,
+    T_0=10,      # First restart after 10 epochs
+    T_mult=2,    # Double the restart interval each time
+    eta_min=1e-5
+)
+```
+
+## Custom Learning Rate Schedules
+
+### Warmup + Cosine Decay
+
+```python
+import math
+from torch.optim.lr_scheduler import LambdaLR
+
+def get_cosine_schedule_with_warmup(
+    optimizer,
+    num_warmup_steps,
+    num_training_steps,
+    num_cycles=0.5
+):
+    def lr_lambda(current_step):
+        # Warmup
+        if current_step < num_warmup_steps:
+            return float(current_step) / float(max(1, num_warmup_steps))
+        
+        # Cosine decay
+        progress = float(current_step - num_warmup_steps) / float(
+            max(1, num_training_steps - num_warmup_steps)
+        )
+        return max(
+            0.0,
+            0.5 * (1.0 + math.cos(math.pi * num_cycles * 2.0 * progress))
+        )
+    
+    return LambdaLR(optimizer, lr_lambda)
+
+# Usage
+optimizer = optim.AdamW(model.parameters(), lr=5e-5)
+num_epochs = 10
+num_training_steps = num_epochs * len(train_loader)
+num_warmup_steps = num_training_steps // 10  # 10% warmup
+
+scheduler = get_cosine_schedule_with_warmup(
+    optimizer,
+    num_warmup_steps,
+    num_training_steps
+)
+
+for epoch in range(num_epochs):
+    for batch in train_loader:
+        train_batch(batch)
+        scheduler.step()
+```
+
+### Linear Warmup + Linear Decay
+
+```python
+from torch.optim.lr_scheduler import LambdaLR
+
+def get_linear_schedule_with_warmup(
+    optimizer,
+    num_warmup_steps,
+    num_training_steps
+):
+    def lr_lambda(current_step):
+        if current_step < num_warmup_steps:
+            return float(current_step) / float(max(1, num_warmup_steps))
+        return max(
+            0.0,
+            float(num_training_steps - current_step) / float(
+                max(1, num_training_steps - num_warmup_steps)
+            ),
+        )
+    
+    return LambdaLR(optimizer, lr_lambda)
+```
+
+## Per-Parameter Options
+
+Different learning rates for different layers:
+
+```python
+# Different lr for backbone and head
+optimizer = optim.SGD([
+    {'params': model.backbone.parameters(), 'lr': 1e-3},
+    {'params': model.head.parameters(), 'lr': 1e-2}
+], momentum=0.9)
+
+# Or with weight decay only on certain parameters
+optimizer = optim.AdamW([
+    {'params': model.conv_layers.parameters(), 'weight_decay': 1e-4},
+    {'params': model.bn_layers.parameters(), 'weight_decay': 0}  # No decay on BN
+], lr=1e-3)
+```
+
+## Learning Rate Finder
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+def find_lr(
+    model,
+    train_loader,
+    optimizer,
+    criterion,
+    device,
+    start_lr=1e-7,
+    end_lr=10,
+    num_iter=100
+):
+    """Learning rate range test."""
+    model.train()
+    
+    # Calculate lr multiplication factor
+    lr_mult = (end_lr / start_lr) ** (1 / num_iter)
+    
+    # Set starting lr
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = start_lr
+    
+    lrs = []
+    losses = []
+    best_loss = float('inf')
+    
+    iterator = iter(train_loader)
+    
+    for iteration in range(num_iter):
+        try:
+            inputs, targets = next(iterator)
+        except StopIteration:
+            iterator = iter(train_loader)
+            inputs, targets = next(iterator)
+        
+        inputs, targets = inputs.to(device), targets.to(device)
+        
+        # Forward pass
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        
+        # Backward pass
+        loss.backward()
+        optimizer.step()
+        
+        # Record
+        lr = optimizer.param_groups[0]['lr']
+        lrs.append(lr)
+        losses.append(loss.item())
+        
+        # Update best loss
+        if loss.item() < best_loss:
+            best_loss = loss.item()
+        
+        # Stop if loss explodes
+        if loss.item() > 4 * best_loss:
+            break
+        
+        # Increase lr
+        for param_group in optimizer.param_groups:
+            param_group['lr'] *= lr_mult
+    
+    # Plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(lrs, losses)
+    plt.xscale('log')
+    plt.xlabel('Learning Rate')
+    plt.ylabel('Loss')
+    plt.title('Learning Rate Finder')
+    plt.grid(True)
+    plt.show()
+    
+    return lrs, losses
+
+# Usage
+model = YourModel().to(device)
+optimizer = optim.SGD(model.parameters(), lr=1e-7)
+criterion = nn.CrossEntropyLoss()
+
+lrs, losses = find_lr(model, train_loader, optimizer, criterion, device)
+```
+
+## Complete Training Example
+
+```python
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.optim.lr_scheduler import CosineAnnealingLR
+
+# Model and optimizer setup
+model = YourModel().cuda()
+optimizer = optim.AdamW(
+    model.parameters(),
+    lr=1e-3,
+    betas=(0.9, 0.999),
+    weight_decay=1e-2
+)
+
+# Scheduler
+scheduler = CosineAnnealingLR(
+    optimizer,
+    T_max=100,
+    eta_min=1e-6
+)
+
+criterion = nn.CrossEntropyLoss()
+
+# Training loop
+for epoch in range(100):
+    model.train()
+    
+    for inputs, targets in train_loader:
+        inputs, targets = inputs.cuda(), targets.cuda()
+        
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        loss.backward()
+        optimizer.step()
+    
+    # Validation
+    model.eval()
+    val_loss = validate(model, val_loader, criterion)
+    
+    # Step scheduler
+    scheduler.step()
+    
+    # Print stats
+    current_lr = optimizer.param_groups[0]['lr']
+    print(f'Epoch {epoch+1}: LR={current_lr:.6f}, Val Loss={val_loss:.4f}')
+```
+
+## Best Practices
+
+<Accordion title="Optimizer selection">
+- **SGD + Momentum**: Best for CNNs when training from scratch (ResNet, EfficientNet)
+- **Adam**: Good default for quick experimentation
+- **AdamW**: Best for Transformers and modern architectures (BERT, ViT)
+- **RMSprop**: Consider for RNNs and non-stationary problems
+</Accordion>
+
+<Accordion title="Learning rate guidelines">
+- **SGD**: Start with 0.1, use schedulers to decay
+- **Adam/AdamW**: Start with 1e-3 or 1e-4
+- **Fine-tuning**: Use 10-100x smaller learning rate than training from scratch
+- **Large batch sizes**: Scale learning rate linearly (batch 256 → lr × 2 if doubling batch)
+</Accordion>
+
+<Accordion title="Scheduler tips">
+- Use OneCycleLR for fast training (great results in fewer epochs)
+- Use CosineAnnealingLR for training from scratch
+- Use ReduceLROnPlateau when you're unsure about the schedule
+- Add warmup for large learning rates or large batch sizes
+- Always monitor learning rate during training
+</Accordion>
+
+## Next Steps
+
+- Learn about [training loops](/guides/training)
+- Understand [model inference](/guides/inference)
+- Explore [saving and loading models](/guides/saving-loading)

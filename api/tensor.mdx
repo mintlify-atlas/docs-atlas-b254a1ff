@@ -1,0 +1,702 @@
+---
+title: 'Tensor - Core Data Structure'
+description: 'PyTorch Tensor class API reference with operations and methods'
+---
+
+## Overview
+
+A `torch.Tensor` is a multi-dimensional matrix containing elements of a single data type. PyTorch defines 10 tensor types with CPU and GPU variants.
+
+## Tensor Creation
+
+<AccordionGroup>
+  <Accordion title="Tensor.__init__()">
+    Creates a tensor from data.
+    
+    <ParamField path="data" type="array_like">
+      Initial tensor data.
+    </ParamField>
+    
+    <ParamField path="dtype" type="torch.dtype">
+      Desired data type. If None, infers from data.
+    </ParamField>
+    
+    <ParamField path="device" type="torch.device">
+      Desired device (cpu, cuda, mps, etc).
+    </ParamField>
+    
+    <ParamField path="requires_grad" type="bool" default="False">
+      If True, gradients will be computed for this tensor.
+    </ParamField>
+    
+    ```python
+    import torch
+    
+    # From Python list
+    x = torch.Tensor([[1, 2], [3, 4]])
+    
+    # With gradient tracking
+    x = torch.Tensor([1.0, 2.0], requires_grad=True)
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.new_tensor()">
+    Returns a new Tensor with data as the tensor data.
+    
+    <ParamField path="data" type="array_like" required>
+      The returned Tensor copies data.
+    </ParamField>
+    
+    <ParamField path="dtype" type="torch.dtype">
+      The desired data type. Default: same as this tensor.
+    </ParamField>
+    
+    <ParamField path="device" type="torch.device">
+      The desired device. Default: same as this tensor.
+    </ParamField>
+    
+    <ParamField path="requires_grad" type="bool" default="False">
+      If autograd should record operations.
+    </ParamField>
+    
+    ```python
+    >>> tensor = torch.ones((2,), dtype=torch.int8)
+    >>> data = [[0, 1], [2, 3]]
+    >>> tensor.new_tensor(data)
+    tensor([[0, 1],
+            [2, 3]], dtype=torch.int8)
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.new_zeros()">
+    Returns a Tensor of size filled with 0.
+    
+    <ParamField path="size" type="int..." required>
+      Shape of the output tensor.
+    </ParamField>
+    
+    <ParamField path="dtype" type="torch.dtype">
+      Default: same as this tensor.
+    </ParamField>
+    
+    ```python
+    >>> tensor = torch.tensor((), dtype=torch.float64)
+    >>> tensor.new_zeros((2, 3))
+    tensor([[0., 0., 0.],
+            [0., 0., 0.]], dtype=torch.float64)
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.new_ones()">
+    Returns a Tensor of size filled with 1.
+    
+    <ParamField path="size" type="int..." required>
+      Shape of the output tensor.
+    </ParamField>
+    
+    ```python
+    >>> tensor = torch.tensor((), dtype=torch.int32)
+    >>> tensor.new_ones((2, 3))
+    tensor([[1, 1, 1],
+            [1, 1, 1]], dtype=torch.int32)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Tensor Properties
+
+<AccordionGroup>
+  <Accordion title="Tensor.shape">
+    Returns the size of the tensor.
+    
+    <ResponseField name="shape" type="torch.Size">
+      A tuple-like object of integers representing tensor dimensions.
+    </ResponseField>
+    
+    ```python
+    >>> x = torch.randn(3, 4, 5)
+    >>> x.shape
+    torch.Size([3, 4, 5])
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.dtype">
+    Returns the data type of the tensor.
+    
+    <ResponseField name="dtype" type="torch.dtype">
+      Data type (torch.float32, torch.int64, etc).
+    </ResponseField>
+    
+    Available dtypes:
+    - **Float**: torch.float16, torch.float32, torch.float64, torch.bfloat16
+    - **Integer**: torch.int8, torch.int16, torch.int32, torch.int64
+    - **Unsigned**: torch.uint8, torch.uint16, torch.uint32, torch.uint64
+    - **Complex**: torch.complex64, torch.complex128
+    - **Boolean**: torch.bool
+    
+    ```python
+    >>> x = torch.randn(3, 4)
+    >>> x.dtype
+    torch.float32
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.device">
+    Returns the device where the tensor is located.
+    
+    <ResponseField name="device" type="torch.device">
+      Device object (cpu, cuda:0, cuda:1, etc).
+    </ResponseField>
+    
+    ```python
+    >>> x = torch.randn(3, 4, device='cuda:0')
+    >>> x.device
+    device(type='cuda', index=0)
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.ndim">
+    Returns the number of dimensions.
+    
+    <ResponseField name="ndim" type="int">
+      Number of tensor dimensions.
+    </ResponseField>
+    
+    ```python
+    >>> x = torch.randn(3, 4, 5)
+    >>> x.ndim
+    3
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.numel()">
+    Returns the total number of elements in the tensor.
+    
+    <ResponseField name="count" type="int">
+      Total number of elements.
+    </ResponseField>
+    
+    ```python
+    >>> x = torch.randn(3, 4, 5)
+    >>> x.numel()
+    60
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.requires_grad">
+    Returns True if gradients need to be computed for this Tensor.
+    
+    <ResponseField name="requires_grad" type="bool">
+      Whether gradient tracking is enabled.
+    </ResponseField>
+    
+    ```python
+    >>> x = torch.randn(3, 4, requires_grad=True)
+    >>> x.requires_grad
+    True
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Mathematical Operations
+
+<AccordionGroup>
+  <Accordion title="Tensor.abs()">
+    Computes the absolute value of each element.
+    
+    <ResponseField name="output" type="Tensor">
+      Tensor with absolute values.
+    </ResponseField>
+    
+    **Formula:** `out_i = |input_i|`
+    
+    ```python
+    >>> x = torch.tensor([-1, -2, 3])
+    >>> x.abs()
+    tensor([1, 2, 3])
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.add()">
+    Adds other to self, scaled by alpha.
+    
+    <ParamField path="other" type="Tensor or Number" required>
+      The tensor or number to add.
+    </ParamField>
+    
+    <ParamField path="alpha" type="Number" default="1">
+      Multiplier for other.
+    </ParamField>
+    
+    **Formula:** `out = self + alpha × other`
+    
+    ```python
+    >>> x = torch.tensor([1, 2, 3])
+    >>> x.add(10)
+    tensor([11, 12, 13])
+    
+    >>> y = torch.tensor([4, 5, 6])
+    >>> x.add(y, alpha=2)
+    tensor([9, 12, 15])
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.matmul()">
+    Matrix multiplication of self with other.
+    
+    <ParamField path="other" type="Tensor" required>
+      The tensor to multiply with.
+    </ParamField>
+    
+    <ResponseField name="output" type="Tensor">
+      Result of matrix multiplication.
+    </ResponseField>
+    
+    **Shapes:**
+    - 1D × 1D → scalar
+    - 2D × 2D → 2D matrix
+    - (batch, n, m) × (batch, m, p) → (batch, n, p)
+    
+    ```python
+    >>> a = torch.randn(2, 3)
+    >>> b = torch.randn(3, 4)
+    >>> a.matmul(b).shape
+    torch.Size([2, 4])
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.sum()">
+    Returns the sum of all elements or along a dimension.
+    
+    <ParamField path="dim" type="int or tuple of ints">
+      Dimension(s) to reduce. If None, reduces all dimensions.
+    </ParamField>
+    
+    <ParamField path="keepdim" type="bool" default="False">
+      Whether output has dim retained or not.
+    </ParamField>
+    
+    <ParamField path="dtype" type="torch.dtype">
+      Desired data type of output.
+    </ParamField>
+    
+    ```python
+    >>> x = torch.randn(4, 4)
+    >>> x.sum()
+    tensor(-1.2345)
+    
+    >>> x.sum(dim=0, keepdim=True)
+    tensor([[-0.5, 1.2, -0.8, 0.3]])
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.mean()">
+    Returns the mean value of all elements or along a dimension.
+    
+    <ParamField path="dim" type="int or tuple of ints">
+      Dimension(s) to reduce.
+    </ParamField>
+    
+    <ParamField path="keepdim" type="bool" default="False">
+      Whether output has dim retained.
+    </ParamField>
+    
+    ```python
+    >>> x = torch.randn(4, 4)
+    >>> x.mean()
+    tensor(0.1234)
+    
+    >>> x.mean(dim=1)
+    tensor([0.2, -0.5, 0.8, -0.1])
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.max()">
+    Returns the maximum value of all elements or along a dimension.
+    
+    <ParamField path="dim" type="int">
+      The dimension to reduce.
+    </ParamField>
+    
+    <ParamField path="keepdim" type="bool" default="False">
+      Whether output has dim retained.
+    </ParamField>
+    
+    <ResponseField name="values" type="Tensor">
+      Maximum values.
+    </ResponseField>
+    
+    <ResponseField name="indices" type="LongTensor">
+      Indices of maximum values (when dim is specified).
+    </ResponseField>
+    
+    ```python
+    >>> x = torch.randn(4, 4)
+    >>> x.max()
+    tensor(2.4567)
+    
+    >>> values, indices = x.max(dim=1)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Shape Manipulation
+
+<AccordionGroup>
+  <Accordion title="Tensor.reshape()">
+    Returns a tensor with the same data but different shape.
+    
+    <ParamField path="*shape" type="int" required>
+      The desired shape.
+    </ParamField>
+    
+    <ResponseField name="output" type="Tensor">
+      Reshaped tensor (view if possible, otherwise copy).
+    </ResponseField>
+    
+    ```python
+    >>> x = torch.randn(4, 6)
+    >>> x.reshape(2, 12).shape
+    torch.Size([2, 12])
+    
+    >>> x.reshape(-1, 3).shape  # -1 inferred
+    torch.Size([8, 3])
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.view()">
+    Returns a new tensor with the same data but different shape.
+    
+    <ParamField path="*shape" type="int" required>
+      The desired shape.
+    </ParamField>
+    
+    <ResponseField name="output" type="Tensor">
+      Tensor view (shares storage with original).
+    </ResponseField>
+    
+    Note: Requires the tensor to be contiguous.
+    
+    ```python
+    >>> x = torch.randn(4, 6)
+    >>> x.view(2, 12).shape
+    torch.Size([2, 12])
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.transpose()">
+    Returns a tensor with two dimensions swapped.
+    
+    <ParamField path="dim0" type="int" required>
+      First dimension to transpose.
+    </ParamField>
+    
+    <ParamField path="dim1" type="int" required>
+      Second dimension to transpose.
+    </ParamField>
+    
+    ```python
+    >>> x = torch.randn(2, 3, 4)
+    >>> x.transpose(0, 2).shape
+    torch.Size([4, 3, 2])
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.permute()">
+    Returns a view with dimensions permuted.
+    
+    <ParamField path="*dims" type="int" required>
+      Desired ordering of dimensions.
+    </ParamField>
+    
+    ```python
+    >>> x = torch.randn(2, 3, 4)
+    >>> x.permute(2, 0, 1).shape
+    torch.Size([4, 2, 3])
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.squeeze()">
+    Returns a tensor with all dimensions of size 1 removed.
+    
+    <ParamField path="dim" type="int">
+      If given, only squeeze this dimension if size is 1.
+    </ParamField>
+    
+    ```python
+    >>> x = torch.randn(2, 1, 3, 1)
+    >>> x.squeeze().shape
+    torch.Size([2, 3])
+    
+    >>> x.squeeze(1).shape
+    torch.Size([2, 3, 1])
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.unsqueeze()">
+    Returns a tensor with a dimension of size 1 inserted at the specified position.
+    
+    <ParamField path="dim" type="int" required>
+      Index at which to insert the dimension.
+    </ParamField>
+    
+    ```python
+    >>> x = torch.randn(2, 3)
+    >>> x.unsqueeze(0).shape
+    torch.Size([1, 2, 3])
+    
+    >>> x.unsqueeze(1).shape
+    torch.Size([2, 1, 3])
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Device Transfer
+
+<AccordionGroup>
+  <Accordion title="Tensor.to()">
+    Performs Tensor dtype and/or device conversion.
+    
+    <ParamField path="device" type="torch.device or str">
+      Target device.
+    </ParamField>
+    
+    <ParamField path="dtype" type="torch.dtype">
+      Target data type.
+    </ParamField>
+    
+    <ParamField path="non_blocking" type="bool" default="False">
+      If True, tries to convert asynchronously.
+    </ParamField>
+    
+    ```python
+    # Move to GPU
+    >>> x_gpu = x.to('cuda')
+    
+    # Change dtype
+    >>> x_fp16 = x.to(torch.float16)
+    
+    # Both
+    >>> x_gpu_fp16 = x.to(device='cuda', dtype=torch.float16)
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.cuda()">
+    Returns a copy of this tensor in CUDA memory.
+    
+    <ParamField path="device" type="int">
+      The destination GPU device. Defaults to current CUDA device.
+    </ParamField>
+    
+    <ParamField path="non_blocking" type="bool" default="False">
+      If True, tries to convert asynchronously.
+    </ParamField>
+    
+    ```python
+    >>> x_cpu = torch.randn(3, 4)
+    >>> x_gpu = x_cpu.cuda()
+    >>> x_gpu.device
+    device(type='cuda', index=0)
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.cpu()">
+    Returns a copy of this tensor in CPU memory.
+    
+    ```python
+    >>> x_gpu = torch.randn(3, 4, device='cuda')
+    >>> x_cpu = x_gpu.cpu()
+    >>> x_cpu.device
+    device(type='cpu')
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Gradient Operations
+
+<AccordionGroup>
+  <Accordion title="Tensor.requires_grad_()">
+    Change if autograd should record operations on this tensor.
+    
+    <ParamField path="requires_grad" type="bool" default="True">
+      Whether to record operations.
+    </ParamField>
+    
+    <ResponseField name="self" type="Tensor">
+      Returns self (modified in-place).
+    </ResponseField>
+    
+    ```python
+    >>> x = torch.randn(3, 4)
+    >>> x.requires_grad_(True)
+    >>> x.requires_grad
+    True
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.detach()">
+    Returns a new Tensor detached from the current graph.
+    
+    <ResponseField name="output" type="Tensor">
+      Detached tensor (shares storage, but no grad tracking).
+    </ResponseField>
+    
+    ```python
+    >>> x = torch.randn(3, 4, requires_grad=True)
+    >>> y = x.detach()
+    >>> y.requires_grad
+    False
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.backward()">
+    Computes the gradient of current tensor w.r.t. graph leaves.
+    
+    <ParamField path="gradient" type="Tensor">
+      Gradient w.r.t. the tensor. If None and tensor is scalar, uses torch.ones_like(tensor).
+    </ParamField>
+    
+    <ParamField path="retain_graph" type="bool">
+      If False, free the graph used to compute grads.
+    </ParamField>
+    
+    <ParamField path="create_graph" type="bool" default="False">
+      If True, graph of the derivative will be constructed for higher order derivatives.
+    </ParamField>
+    
+    ```python
+    >>> x = torch.randn(3, 4, requires_grad=True)
+    >>> y = x.sum()
+    >>> y.backward()
+    >>> x.grad  # Gradient computed
+    ```
+  </Accordion>
+
+  <Accordion title="Tensor.grad">
+    This attribute is None by default. It accumulates gradients during backward().
+    
+    <ResponseField name="grad" type="Tensor or None">
+      Accumulated gradients.
+    </ResponseField>
+    
+    ```python
+    >>> x = torch.tensor([1., 2., 3.], requires_grad=True)
+    >>> y = x.sum()
+    >>> y.backward()
+    >>> x.grad
+    tensor([1., 1., 1.])
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Indexing and Slicing
+
+<CodeGroup>
+```python Basic Indexing
+import torch
+
+x = torch.randn(3, 4, 5)
+
+# Single element
+val = x[0, 1, 2]
+
+# Slicing
+slice1 = x[0, :, :]  # First matrix
+slice2 = x[:, 1, :]  # All elements in 2nd column
+```
+
+```python Advanced Indexing
+import torch
+
+x = torch.randn(3, 4)
+
+# Boolean indexing
+mask = x > 0
+positive = x[mask]
+
+# Index tensors
+indices = torch.tensor([0, 2])
+selected = x[indices]  # Select rows 0 and 2
+```
+
+```python Masked Operations
+import torch
+
+x = torch.randn(3, 4)
+mask = x > 0
+
+# Masked fill
+x.masked_fill_(mask, 0.0)  # Replace positive values with 0
+
+# Masked select
+values = x.masked_select(mask)  # Get all values matching mask
+```
+</CodeGroup>
+
+## In-place Operations
+
+Operations with a trailing `_` modify the tensor in-place:
+
+<CodeGroup>
+```python In-place Math
+x = torch.randn(3, 4)
+
+# Add in-place
+x.add_(5)
+
+# Multiply in-place
+x.mul_(2)
+
+# Clamp in-place
+x.clamp_(min=0, max=1)
+```
+
+```python In-place Fill
+x = torch.randn(3, 4)
+
+# Fill with value
+x.fill_(0)
+
+# Fill with zeros
+x.zero_()
+
+# Copy from another tensor
+x.copy_(y)
+```
+</CodeGroup>
+
+## Best Practices
+
+<Accordion title="Memory Efficiency">
+  - Use in-place operations (`add_`, `mul_`, etc.) when safe to reduce memory
+  - Prefer `view()` over `reshape()` when possible (avoids copy)
+  - Use `detach()` when you don't need gradients
+  - Clear gradients with `tensor.grad = None` instead of `tensor.grad.zero_()` for better memory
+</Accordion>
+
+<Accordion title="Shape Operations">
+  - Use `view(-1)` to flatten tensors
+  - Use `unsqueeze()` to add broadcasting dimensions
+  - Use `contiguous()` before `view()` if tensor is not contiguous
+  - Prefer `reshape()` over `view()` for more robust code
+</Accordion>
+
+<Accordion title="Device Management">
+  - Create tensors on target device directly: `torch.randn(3, 4, device='cuda')`
+  - Use `.to(device)` for device-agnostic code
+  - Set `non_blocking=True` for async CPU→GPU transfers when possible
+</Accordion>
+
+## Related APIs
+
+<CardGroup cols={2}>
+  <Card title="torch Module" icon="box" href="/api/torch">
+    Core PyTorch functions
+  </Card>
+  <Card title="Autograd API" icon="arrows-rotate" href="/api/autograd">
+    Automatic differentiation
+  </Card>
+  <Card title="CUDA API" icon="microchip" href="/api/cuda">
+    GPU operations
+  </Card>
+</CardGroup>

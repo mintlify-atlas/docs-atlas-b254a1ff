@@ -1,0 +1,558 @@
+---
+title: 'torch.nn.functional'
+description: 'Functional interface for neural network operations'
+---
+
+## Overview
+
+The `torch.nn.functional` module provides functional implementations of neural network operations. Unlike `torch.nn` modules, these functions are stateless and don't maintain learnable parameters.
+
+<Note>
+Use `F` as an alias: `import torch.nn.functional as F`
+</Note>
+
+## Convolution Operations
+
+### conv2d
+
+```python
+F.conv2d(input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1)
+```
+
+Applies a 2D convolution over an input image.
+
+<ParamField path="input" type="Tensor" required>
+  Input tensor of shape `(minibatch, in_channels, iH, iW)`
+</ParamField>
+
+<ParamField path="weight" type="Tensor" required>
+  Filters of shape `(out_channels, in_channels/groups, kH, kW)`
+</ParamField>
+
+<ParamField path="bias" type="Tensor" default="None">
+  Optional bias tensor of shape `(out_channels)`
+</ParamField>
+
+<ParamField path="stride" type="int | tuple" default="1">
+  Stride of the convolving kernel
+</ParamField>
+
+<ParamField path="padding" type="int | tuple | str" default="0">
+  Padding added to both sides. Can be `'valid'`, `'same'`, or integer
+</ParamField>
+
+<ParamField path="dilation" type="int | tuple" default="1">
+  Spacing between kernel elements
+</ParamField>
+
+<ParamField path="groups" type="int" default="1">
+  Number of blocked connections from input to output channels
+</ParamField>
+
+**Example:**
+
+```python
+import torch.nn.functional as F
+
+filters = torch.randn(8, 4, 3, 3)
+inputs = torch.randn(1, 4, 5, 5)
+output = F.conv2d(inputs, filters, padding=1)
+```
+
+### conv1d
+
+```python
+F.conv1d(input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1)
+```
+
+Applies a 1D convolution over an input signal.
+
+**Shape:**
+- Input: `(minibatch, in_channels, iW)`
+- Weight: `(out_channels, in_channels/groups, kW)`
+- Output: `(minibatch, out_channels, oW)`
+
+### conv3d
+
+```python
+F.conv3d(input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1)
+```
+
+Applies a 3D convolution over an input signal.
+
+**Shape:**
+- Input: `(minibatch, in_channels, iT, iH, iW)`
+- Weight: `(out_channels, in_channels/groups, kT, kH, kW)`
+- Output: `(minibatch, out_channels, oT, oH, oW)`
+
+## Pooling Operations
+
+### max_pool2d
+
+```python
+F.max_pool2d(input, kernel_size, stride=None, padding=0, dilation=1, 
+             ceil_mode=False, return_indices=False)
+```
+
+Applies 2D max pooling over an input signal.
+
+<ParamField path="input" type="Tensor" required>
+  Input tensor of shape `(minibatch, in_channels, iH, iW)`
+</ParamField>
+
+<ParamField path="kernel_size" type="int | tuple" required>
+  Size of the pooling region
+</ParamField>
+
+<ParamField path="stride" type="int | tuple" default="kernel_size">
+  Stride of the pooling operation
+</ParamField>
+
+<ParamField path="padding" type="int | tuple" default="0">
+  Implicit negative infinity padding
+</ParamField>
+
+<ParamField path="dilation" type="int | tuple" default="1">
+  Stride between elements within a sliding window
+</ParamField>
+
+<ParamField path="ceil_mode" type="bool" default="False">
+  Use `ceil` instead of `floor` to compute output shape
+</ParamField>
+
+<ParamField path="return_indices" type="bool" default="False">
+  Return the max indices along with outputs
+</ParamField>
+
+### avg_pool2d
+
+```python
+F.avg_pool2d(input, kernel_size, stride=None, padding=0, ceil_mode=False, 
+             count_include_pad=True, divisor_override=None)
+```
+
+Applies 2D average pooling over an input signal.
+
+<ParamField path="count_include_pad" type="bool" default="True">
+  Include zero-padding in averaging calculation
+</ParamField>
+
+<ParamField path="divisor_override" type="int" default="None">
+  If specified, used as divisor instead of pooling region size
+</ParamField>
+
+### adaptive_avg_pool2d
+
+```python
+F.adaptive_avg_pool2d(input, output_size)
+```
+
+Applies 2D adaptive average pooling.
+
+<ParamField path="output_size" type="int | tuple" required>
+  Target output size (H_out, W_out)
+</ParamField>
+
+**Example:**
+
+```python
+input = torch.randn(1, 64, 8, 9)
+output = F.adaptive_avg_pool2d(input, (5, 7))
+print(output.shape)  # torch.Size([1, 64, 5, 7])
+```
+
+## Activation Functions
+
+### relu
+
+```python
+F.relu(input, inplace=False)
+```
+
+Applies the rectified linear unit function element-wise: `ReLU(x) = max(0, x)`
+
+<ParamField path="input" type="Tensor" required>
+  Input tensor
+</ParamField>
+
+<ParamField path="inplace" type="bool" default="False">
+  Perform operation in-place
+</ParamField>
+
+**Example:**
+
+```python
+input = torch.randn(2)
+output = F.relu(input)
+```
+
+### leaky_relu
+
+```python
+F.leaky_relu(input, negative_slope=0.01, inplace=False)
+```
+
+Applies element-wise: `LeakyReLU(x) = max(0, x) + negative_slope * min(0, x)`
+
+<ParamField path="negative_slope" type="float" default="0.01">
+  Controls the angle of the negative slope
+</ParamField>
+
+### gelu
+
+```python
+F.gelu(input, approximate='none')
+```
+
+Applies the Gaussian Error Linear Units function.
+
+<ParamField path="approximate" type="str" default="'none'">
+  Approximation type: `'none'` or `'tanh'`
+</ParamField>
+
+When `approximate='none'`:
+```
+GELU(x) = x * Φ(x)
+```
+
+Where Φ(x) is the Cumulative Distribution Function for Gaussian Distribution.
+
+### sigmoid
+
+```python
+F.sigmoid(input)
+```
+
+Applies the element-wise sigmoid function: `σ(x) = 1 / (1 + exp(-x))`
+
+### tanh
+
+```python
+F.tanh(input)
+```
+
+Applies the hyperbolic tangent function element-wise.
+
+### softmax
+
+```python
+F.softmax(input, dim=None, dtype=None)
+```
+
+Applies the Softmax function to an n-dimensional input Tensor.
+
+<ParamField path="input" type="Tensor" required>
+  Input tensor
+</ParamField>
+
+<ParamField path="dim" type="int" required>
+  Dimension along which Softmax will be computed
+</ParamField>
+
+<ParamField path="dtype" type="torch.dtype" default="None">
+  Desired data type of returned tensor
+</ParamField>
+
+**Formula:**
+```
+Softmax(x_i) = exp(x_i) / Σ_j exp(x_j)
+```
+
+**Example:**
+
+```python
+input = torch.randn(2, 3)
+output = F.softmax(input, dim=1)
+print(output.sum(dim=1))  # tensor([1., 1.])
+```
+
+### log_softmax
+
+```python
+F.log_softmax(input, dim=None, dtype=None)
+```
+
+Applies a softmax followed by a logarithm.
+
+<Warning>
+For numerical stability and better gradient flow, use `log_softmax` instead of manually computing `log(softmax(x))`.
+</Warning>
+
+**Example:**
+
+```python
+input = torch.randn(2, 3)
+output = F.log_softmax(input, dim=1)
+```
+
+### elu
+
+```python
+F.elu(input, alpha=1.0, inplace=False)
+```
+
+Applies the Exponential Linear Unit (ELU) function.
+
+<ParamField path="alpha" type="float" default="1.0">
+  The α value for the ELU formulation
+</ParamField>
+
+### selu
+
+```python
+F.selu(input, inplace=False)
+```
+
+Applies the Scaled Exponential Linear Unit (SELU) function.
+
+## Normalization Functions
+
+### batch_norm
+
+```python
+F.batch_norm(input, running_mean, running_var, weight=None, bias=None, 
+             training=False, momentum=0.1, eps=1e-05)
+```
+
+Applies Batch Normalization for each channel across a batch of data.
+
+<ParamField path="input" type="Tensor" required>
+  Input tensor of shape `(N, C, *)` where `*` means any spatial dimensions
+</ParamField>
+
+<ParamField path="running_mean" type="Tensor" required>
+  Running mean tensor of shape `(C,)`
+</ParamField>
+
+<ParamField path="running_var" type="Tensor" required>
+  Running variance tensor of shape `(C,)`
+</ParamField>
+
+<ParamField path="weight" type="Tensor" default="None">
+  Learnable scale parameter of shape `(C,)`
+</ParamField>
+
+<ParamField path="bias" type="Tensor" default="None">
+  Learnable shift parameter of shape `(C,)`
+</ParamField>
+
+<ParamField path="training" type="bool" default="False">
+  Training mode flag
+</ParamField>
+
+<ParamField path="momentum" type="float" default="0.1">
+  Momentum for running statistics
+</ParamField>
+
+<ParamField path="eps" type="float" default="1e-05">
+  Value added for numerical stability
+</ParamField>
+
+### layer_norm
+
+```python
+F.layer_norm(input, normalized_shape, weight=None, bias=None, eps=1e-05)
+```
+
+Applies Layer Normalization over a mini-batch of inputs.
+
+<ParamField path="normalized_shape" type="list | tuple" required>
+  Input shape from an expected input
+</ParamField>
+
+### group_norm
+
+```python
+F.group_norm(input, num_groups, weight=None, bias=None, eps=1e-05)
+```
+
+Applies Group Normalization over a mini-batch of inputs.
+
+<ParamField path="num_groups" type="int" required>
+  Number of groups to separate channels into
+</ParamField>
+
+## Dropout Functions
+
+### dropout
+
+```python
+F.dropout(input, p=0.5, training=True, inplace=False)
+```
+
+Randomly zeroes some elements of the input tensor with probability `p`.
+
+<ParamField path="p" type="float" default="0.5">
+  Probability of an element to be zeroed
+</ParamField>
+
+<ParamField path="training" type="bool" default="True">
+  Apply dropout if `True`
+</ParamField>
+
+**Example:**
+
+```python
+input = torch.randn(20, 16)
+output = F.dropout(input, p=0.2, training=True)
+```
+
+### dropout2d
+
+```python
+F.dropout2d(input, p=0.5, training=True, inplace=False)
+```
+
+Randomly zeros out entire channels (channel-wise dropout).
+
+## Linear Functions
+
+### linear
+
+```python
+F.linear(input, weight, bias=None)
+```
+
+Applies a linear transformation: `y = xA^T + b`
+
+<ParamField path="input" type="Tensor" required>
+  Input tensor of shape `(*, in_features)`
+</ParamField>
+
+<ParamField path="weight" type="Tensor" required>
+  Weight tensor of shape `(out_features, in_features)`
+</ParamField>
+
+<ParamField path="bias" type="Tensor" default="None">
+  Optional bias tensor of shape `(out_features,)`
+</ParamField>
+
+**Example:**
+
+```python
+input = torch.randn(128, 20)
+weight = torch.randn(30, 20)
+output = F.linear(input, weight)
+print(output.shape)  # torch.Size([128, 30])
+```
+
+### bilinear
+
+```python
+F.bilinear(input1, input2, weight, bias=None)
+```
+
+Applies a bilinear transformation: `y = x1^T A x2 + b`
+
+## Loss Functions
+
+### cross_entropy
+
+```python
+F.cross_entropy(input, target, weight=None, size_average=None, 
+                ignore_index=-100, reduce=None, reduction='mean', 
+                label_smoothing=0.0)
+```
+
+Computes the cross entropy loss between input logits and target.
+
+<ParamField path="input" type="Tensor" required>
+  Predicted unnormalized logits of shape `(N, C)` or `(N, C, d1, d2, ..., dK)`
+</ParamField>
+
+<ParamField path="target" type="Tensor" required>
+  Ground truth class indices of shape `(N)` or `(N, d1, d2, ..., dK)`
+</ParamField>
+
+<ParamField path="reduction" type="str" default="'mean'">
+  Specifies reduction: `'none'`, `'mean'`, or `'sum'`
+</ParamField>
+
+<ParamField path="label_smoothing" type="float" default="0.0">
+  Label smoothing factor in [0.0, 1.0]
+</ParamField>
+
+**Example:**
+
+```python
+input = torch.randn(3, 5, requires_grad=True)
+target = torch.randint(5, (3,), dtype=torch.long)
+loss = F.cross_entropy(input, target)
+loss.backward()
+```
+
+### mse_loss
+
+```python
+F.mse_loss(input, target, size_average=None, reduce=None, reduction='mean')
+```
+
+Measures the element-wise mean squared error.
+
+### binary_cross_entropy
+
+```python
+F.binary_cross_entropy(input, target, weight=None, size_average=None, 
+                       reduce=None, reduction='mean')
+```
+
+Measures the Binary Cross Entropy between the target and input probabilities.
+
+### nll_loss
+
+```python
+F.nll_loss(input, target, weight=None, size_average=None, ignore_index=-100, 
+           reduce=None, reduction='mean')
+```
+
+Negative log likelihood loss.
+
+## Utility Functions
+
+### pad
+
+```python
+F.pad(input, pad, mode='constant', value=0)
+```
+
+Pads tensor.
+
+<ParamField path="pad" type="tuple" required>
+  m-elements tuple specifying padding sizes
+</ParamField>
+
+<ParamField path="mode" type="str" default="'constant'">
+  `'constant'`, `'reflect'`, `'replicate'`, or `'circular'`
+</ParamField>
+
+**Example:**
+
+```python
+t = torch.tensor([[1, 2], [3, 4]])
+padded = F.pad(t, (1, 1, 1, 1), mode='constant', value=0)
+# tensor([[0, 0, 0, 0],
+#         [0, 1, 2, 0],
+#         [0, 3, 4, 0],
+#         [0, 0, 0, 0]])
+```
+
+### interpolate
+
+```python
+F.interpolate(input, size=None, scale_factor=None, mode='nearest', 
+              align_corners=None, recompute_scale_factor=None, antialias=False)
+```
+
+Down/up samples the input to given size or scale_factor.
+
+<ParamField path="size" type="int | tuple" default="None">
+  Output spatial size
+</ParamField>
+
+<ParamField path="scale_factor" type="float | tuple" default="None">
+  Multiplier for spatial size
+</ParamField>
+
+<ParamField path="mode" type="str" default="'nearest'">
+  Algorithm: `'nearest'`, `'linear'`, `'bilinear'`, `'bicubic'`, `'trilinear'`, `'area'`
+</ParamField>

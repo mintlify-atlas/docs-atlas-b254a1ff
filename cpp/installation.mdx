@@ -1,0 +1,333 @@
+---
+title: 'Installing LibTorch'
+description: 'Download and install the PyTorch C++ distribution for your platform'
+---
+
+## Overview
+
+LibTorch is the C++ distribution of PyTorch. It contains all headers, libraries, and CMake configuration files required to depend on PyTorch from C++.
+
+## System Requirements
+
+Before installing LibTorch, ensure your system meets these requirements:
+
+### Linux
+- **GLIBC**: Version 2.29 or newer (for cxx11 ABI version)
+- **GCC**: Version 9 or newer (for cxx11)
+- **CMake**: Version 3.18 or higher
+- **Disk Space**: At least 2GB for LibTorch binaries
+
+### Windows
+- **Visual Studio**: 2017, 2019, or 2022
+- **CMake**: Version 3.18 or higher
+- **Disk Space**: At least 2GB for LibTorch binaries
+
+### macOS
+- **macOS**: 10.13 (High Sierra) or later
+- **Xcode**: Latest version recommended
+- **CMake**: Version 3.18 or higher
+
+## Download LibTorch
+
+### Binary Distribution
+
+Download pre-built LibTorch from the [PyTorch website](https://pytorch.org/get-started/locally/).
+
+<Steps>
+  <Step title="Select Your Configuration">
+    Choose your platform, compute platform (CPU/CUDA), and language (C++).
+  </Step>
+  
+  <Step title="Download the Archive">
+    Download the appropriate LibTorch distribution for your system.
+    
+    **CPU-only (Linux):**
+    ```bash
+    wget https://download.pytorch.org/libtorch/nightly/cpu/libtorch-shared-with-deps-latest.zip
+    unzip libtorch-shared-with-deps-latest.zip
+    ```
+    
+    **GPU-enabled (Linux with CUDA 12.4):**
+    ```bash
+    wget https://download.pytorch.org/libtorch/nightly/cu124/libtorch-shared-with-deps-latest.zip
+    unzip libtorch-shared-with-deps-latest.zip
+    ```
+  </Step>
+  
+  <Step title="Note the Installation Path">
+    Remember the absolute path to the extracted `libtorch` directory - you'll need this for CMake configuration.
+  </Step>
+</Steps>
+
+<Note>
+For GPU support, select the LibTorch distribution matching your CUDA version. Find the right link using the selector on [pytorch.org](https://pytorch.org/get-started/locally/).
+</Note>
+
+### From PyTorch Python Installation
+
+If you have PyTorch installed via pip, you can query the LibTorch path:
+
+```bash
+python3 -c 'import torch;print(torch.utils.cmake_prefix_path)'
+```
+
+## Building from Source
+
+### Prerequisites
+
+To build PyTorch from source, you need:
+
+- **Python**: 3.10 or later
+- **Compiler**: Full C++20 support (GCC 11.3.0+ on Linux, clang on macOS)
+- **Disk Space**: At least 10GB free
+- **Build Time**: 30-60 minutes for initial build
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/pytorch/pytorch
+cd pytorch
+git submodule sync
+git submodule update --init --recursive
+```
+
+### Install Dependencies
+
+<CodeGroup>
+```bash Linux
+# From the PyTorch directory
+pip install --group dev
+pip install mkl-static mkl-include
+
+# For CUDA support: Add LAPACK support for GPU
+.ci/docker/common/install_magma_conda.sh 12.4
+```
+
+```bash macOS
+pip install --group dev
+
+# For Intel x86 processors only
+pip install mkl-static mkl-include
+
+# For distributed support
+conda install pkg-config libuv
+```
+
+```bash Windows
+pip install --group dev
+pip install mkl-static mkl-include
+
+# For distributed support (prototype)
+conda install -c conda-forge libuv=1.51
+```
+</CodeGroup>
+
+### Build PyTorch
+
+<CodeGroup>
+```bash Linux
+export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMAKE_PREFIX_PATH}"
+python -m pip install --no-build-isolation -v -e .
+```
+
+```bash macOS
+python -m pip install --no-build-isolation -v -e .
+```
+
+```bash Windows
+python -m pip install --no-build-isolation -v -e .
+```
+</CodeGroup>
+
+<Note>
+For CUDA support on Linux, ensure CUDA is properly installed and `USE_CUDA=1` is set (default). To disable CUDA, set `USE_CUDA=0`.
+</Note>
+
+## Creating Your First Application
+
+### Project Structure
+
+Create a minimal LibTorch application with this structure:
+
+```
+example-app/
+  CMakeLists.txt
+  example-app.cpp
+```
+
+### CMakeLists.txt
+
+Create a `CMakeLists.txt` file:
+
+```cmake
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+project(example-app)
+
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+
+add_executable(example-app example-app.cpp)
+target_link_libraries(example-app "${TORCH_LIBRARIES}")
+set_property(TARGET example-app PROPERTY CXX_STANDARD 17)
+
+# Windows: Copy DLLs to avoid memory errors
+if (MSVC)
+  file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
+  add_custom_command(TARGET example-app
+                     POST_BUILD
+                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                     ${TORCH_DLLS}
+                     $<TARGET_FILE_DIR:example-app>)
+endif (MSVC)
+```
+
+### Application Code
+
+Create `example-app.cpp`:
+
+```cpp
+#include <torch/torch.h>
+#include <iostream>
+
+int main() {
+  torch::Tensor tensor = torch::rand({2, 3});
+  std::cout << tensor << std::endl;
+  return 0;
+}
+```
+
+<Note>
+Including `<torch/torch.h>` is the most reliable way to access the PyTorch C++ API. For more fine-grained control, you can include specific headers.
+</Note>
+
+### Build the Application
+
+<Steps>
+  <Step title="Create Build Directory">
+    ```bash
+    mkdir build
+    cd build
+    ```
+  </Step>
+  
+  <Step title="Configure with CMake">
+    Specify the path to your LibTorch installation:
+    
+    ```bash
+    cmake -DCMAKE_PREFIX_PATH=/absolute/path/to/libtorch ..
+    ```
+    
+    Or if using PyTorch from pip:
+    
+    ```bash
+    cmake -DCMAKE_PREFIX_PATH=`python3 -c 'import torch;print(torch.utils.cmake_prefix_path)'` ..
+    ```
+  </Step>
+  
+  <Step title="Build the Project">
+    ```bash
+    cmake --build . --config Release
+    ```
+  </Step>
+  
+  <Step title="Run the Application">
+    ```bash
+    ./example-app
+    ```
+    
+    Expected output (values will vary due to randomness):
+    ```
+    0.2063  0.6593  0.0866
+    0.0796  0.5841  0.1569
+    [ CPUFloatType{2,3} ]
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+On Windows, debug and release builds are **not ABI-compatible**. If building in debug mode, use the debug version of LibTorch. Always specify the correct configuration in `cmake --build`.
+</Warning>
+
+## Platform-Specific Notes
+
+### Visual Studio Extension (Windows)
+
+For Windows developers not using CMake, the [LibTorch Project Template](https://marketplace.visualstudio.com/items?itemName=YiZhang.LibTorch001) Visual Studio extension can automatically configure project settings and link options.
+
+**Features:**
+- Automatic setup for debug and release configurations
+- Pre-configured include paths and library links
+- Easy project creation
+
+See the [demo video](https://ossci-windows.s3.us-east-1.amazonaws.com/vsextension/demo.mp4) for usage instructions.
+
+### CUDA Support
+
+For GPU-enabled builds:
+
+1. **Install NVIDIA CUDA**: [Download from NVIDIA](https://developer.nvidia.com/cuda-downloads)
+2. **Install cuDNN**: Version 8.5 or above [from NVIDIA](https://developer.nvidia.com/cudnn)
+3. **Compatible Compiler**: Check [CUDA compatibility](https://gist.github.com/ax3l/9489132)
+
+Set the CUDA path if installed in a non-standard location:
+
+```bash
+export PATH=/usr/local/cuda-12.4/bin:$PATH
+```
+
+### ROCm Support (AMD GPUs)
+
+For AMD GPU support on Linux:
+
+1. **Install ROCm**: Version 4.0+ [from AMD](https://rocm.docs.amd.com/en/latest/deploy/linux/quick_start.html)
+2. **Set ROCm Path** (if not in `/opt/rocm`):
+   ```bash
+   export ROCM_PATH=/path/to/rocm
+   ```
+
+## Troubleshooting
+
+### CMake Cannot Find Torch
+
+**Problem**: `CMake Error: Could not find a package configuration file provided by "Torch"`
+
+**Solution**: Ensure `CMAKE_PREFIX_PATH` points to the absolute path of your LibTorch installation:
+
+```bash
+cmake -DCMAKE_PREFIX_PATH=/absolute/path/to/libtorch ..
+```
+
+### Linking Errors on Windows
+
+**Problem**: Unresolved external symbols or DLL not found errors
+
+**Solution**: 
+- Verify debug/release configuration matches LibTorch build
+- Ensure DLL copy step in CMakeLists.txt is present
+- Check that Visual Studio version is compatible
+
+### Missing OpenMP (macOS)
+
+**Problem**: OpenMP-related errors during build
+
+**Solution**: Install OpenMP via Homebrew:
+
+```bash
+brew install libomp
+```
+
+## Getting Help
+
+If you encounter installation issues:
+
+- **Forum**: [PyTorch Discussion Forum](https://discuss.pytorch.org/)
+- **GitHub**: [PyTorch Issues](https://github.com/pytorch/pytorch/issues)
+- **Documentation**: [Official C++ Docs](https://pytorch.org/cppdocs/)
+
+## Next Steps
+
+Now that you have LibTorch installed, learn about:
+
+- [Tensor Operations](/cpp/tensors) - Working with tensors in C++
+- [Autograd](/cpp/autograd) - Automatic differentiation
+- [Modules](/cpp/modules) - Building neural networks

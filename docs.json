@@ -1,122 +1,152 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "PyTorch",
+  "theme": "aspen",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#EE4C2C",
+    "light": "#FF6F3C",
+    "dark": "#C43D1F"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/pytorch/pytorch"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/pytorch/pytorch"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "installation",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "concepts/tensors",
+              "concepts/autograd",
+              "concepts/neural-networks",
+              "concepts/data-loading"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Guides",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "guides/building-models",
+              "guides/training",
+              "guides/inference",
+              "guides/optimization",
+              "guides/saving-loading"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Advanced Topics",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "advanced/distributed-training",
+              "advanced/mixed-precision",
+              "advanced/torch-compile",
+              "advanced/quantization",
+              "advanced/custom-ops"
+            ]
+          },
+          {
+            "group": "Hardware Acceleration",
+            "pages": [
+              "hardware/cuda",
+              "hardware/rocm",
+              "hardware/mps",
+              "hardware/xpu"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Core",
             "pages": [
-              "api-reference/introduction"
+              "api/torch",
+              "api/tensor",
+              "api/autograd",
+              "api/cuda"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Neural Networks",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/nn",
+              "api/nn-modules",
+              "api/nn-functional",
+              "api/nn-init"
+            ]
+          },
+          {
+            "group": "Optimization",
+            "pages": [
+              "api/optim",
+              "api/lr-scheduler"
+            ]
+          },
+          {
+            "group": "Data",
+            "pages": [
+              "api/data",
+              "api/datasets",
+              "api/transforms"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "api/utils",
+              "api/jit",
+              "api/distributed",
+              "api/quantization"
+            ]
+          },
+          {
+            "group": "Special Modules",
+            "pages": [
+              "api/fft",
+              "api/linalg",
+              "api/sparse",
+              "api/special"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "C++ API",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "cpp/introduction",
+              "cpp/installation"
+            ]
+          },
+          {
+            "group": "LibTorch",
+            "pages": [
+              "cpp/tensors",
+              "cpp/autograd",
+              "cpp/modules"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

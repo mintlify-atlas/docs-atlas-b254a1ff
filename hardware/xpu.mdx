@@ -1,0 +1,615 @@
+---
+title: XPU Support
+description: Intel XPU GPU acceleration for PyTorch on Intel GPUs
+---
+
+PyTorch provides support for Intel GPUs through the XPU backend, enabling GPU acceleration for deep learning workloads on Intel discrete and integrated GPUs.
+
+## Overview
+
+The XPU backend in PyTorch is specifically designed for Intel GPU optimization, supporting Intel Data Center GPU Max Series, Intel Arc Graphics, and other Intel GPU architectures. It leverages Intel's oneAPI and SYCL runtime for high-performance computing.
+
+<Note>
+XPU support is available for both Linux and Windows platforms with compatible Intel GPU hardware.
+</Note>
+
+## Installation & Setup
+
+### Prerequisites
+
+To compile PyTorch with Intel GPU support, you need:
+
+- Compatible Intel GPU (Arc, Data Center GPU Max, or Iris Xe)
+- [Intel GPU drivers](https://www.intel.com/content/www/us/en/developer/articles/tool/pytorch-prerequisites-for-intel-gpu.html)
+- Intel oneAPI Base Toolkit
+- Linux or Windows operating system
+
+<Tip>
+Follow the [PyTorch Prerequisites for Intel GPUs](https://www.intel.com/content/www/us/en/developer/articles/tool/pytorch-prerequisites-for-intel-gpu.html) guide for detailed installation instructions.
+</Tip>
+
+### Environment Variables
+
+```bash
+# Disable XPU support during build
+export USE_XPU=0
+
+# Enable XPU support (default when Intel GPU detected)
+export USE_XPU=1
+```
+
+### Building from Source
+
+<Tabs>
+  <Tab title="Linux">
+    ```bash
+    # Clone PyTorch repository
+    git clone https://github.com/pytorch/pytorch
+    cd pytorch
+    git submodule sync
+    git submodule update --init --recursive
+
+    # Install dependencies
+    pip install --group dev
+    pip install mkl-static mkl-include
+
+    # Enable XPU support
+    export USE_XPU=1
+
+    # Build PyTorch
+    export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMAKE_PREFIX_PATH}"
+    python -m pip install --no-build-isolation -v -e .
+    ```
+  </Tab>
+  
+  <Tab title="Windows">
+    ```cmd
+    :: Set environment variables
+    set USE_XPU=1
+    set CMAKE_PREFIX_PATH=%CONDA_PREFIX%\Library;%CMAKE_PREFIX_PATH%
+
+    :: Build PyTorch
+    python -m pip install --no-build-isolation -v -e .
+    ```
+  </Tab>
+</Tabs>
+
+## Device Management
+
+### Checking XPU Availability
+
+```python
+import torch
+
+# Check if XPU is available
+if torch.xpu.is_available():
+    print(f"XPU is available with {torch.xpu.device_count()} GPU(s)")
+    print(f"Current device: {torch.xpu.current_device()}")
+    print(f"Device name: {torch.xpu.get_device_name(0)}")
+else:
+    print("XPU is not available")
+```
+
+### Device Selection
+
+```python
+import torch
+
+# Context manager for device selection (recommended)
+with torch.xpu.device(0):
+    # Operations here use Intel GPU 0
+    tensor = torch.randn(100, 100, device='xpu')
+    result = tensor @ tensor.T
+
+# Set current device
+torch.xpu.set_device(1)
+
+# Device object
+xpu_device = torch.device('xpu:0')
+tensor = torch.randn(1000, 1000, device=xpu_device)
+```
+
+### Device Properties
+
+```python
+# Get Intel GPU properties
+props = torch.xpu.get_device_properties(0)
+
+print(f"Device name: {props.name}")
+print(f"Device type: {props.dev_type}")
+print(f"Total memory: {props.total_memory / 1e9:.2f} GB")
+print(f"Max compute units: {props.max_compute_units}")
+print(f"Max work group size: {props.max_work_group_size}")
+print(f"Supports subgroup matrix ops: {props.has_subgroup_matrix_multiply_accumulate}")
+print(f"Supports BF16 conversions: {props.has_bfloat16_conversions}")
+```
+
+## Tensor Operations
+
+### Creating XPU Tensors
+
+```python
+import torch
+
+# Method 1: Specify device during creation
+tensor_xpu = torch.randn(1000, 1000, device='xpu')
+
+# Method 2: Move existing tensor to XPU
+tensor_cpu = torch.randn(1000, 1000)
+tensor_xpu = tensor_cpu.to('xpu')
+
+# Method 3: Using xpu() method
+tensor_xpu = tensor_cpu.xpu()
+
+# Multi-GPU: Specify device index
+tensor_xpu1 = torch.randn(100, 100, device='xpu:1')
+```
+
+### Moving Tensors Between Devices
+
+```python
+# Create tensor on CPU
+x = torch.randn(100, 100)
+
+# Move to Intel GPU
+x_xpu = x.to('xpu')
+
+# Move to specific GPU
+x_xpu1 = x.to('xpu:1')
+
+# Move back to CPU
+x_cpu = x_xpu.to('cpu')
+
+# Check device
+print(f"Tensor is on: {x_xpu.device}")
+```
+
+### Model Training on XPU
+
+```python
+import torch
+import torch.nn as nn
+
+# Define model
+model = nn.Sequential(
+    nn.Linear(784, 256),
+    nn.ReLU(),
+    nn.Linear(256, 10)
+)
+
+# Move model to XPU
+model = model.to('xpu')
+
+# Training loop
+optimizer = torch.optim.Adam(model.parameters())
+criterion = nn.CrossEntropyLoss()
+
+for epoch in range(num_epochs):
+    for inputs, targets in train_loader:
+        # Move data to XPU
+        inputs = inputs.to('xpu')
+        targets = targets.to('xpu')
+        
+        # Forward pass
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        
+        # Backward pass
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+```
+
+## Memory Management
+
+### Memory Information
+
+```python
+import torch
+
+# Get current memory usage
+allocated = torch.xpu.memory_allocated(0)
+reserved = torch.xpu.memory_reserved(0)
+
+print(f"Allocated: {allocated / 1e9:.2f} GB")
+print(f"Reserved: {reserved / 1e9:.2f} GB")
+
+# Get max memory allocated
+max_allocated = torch.xpu.max_memory_allocated(0)
+print(f"Max allocated: {max_allocated / 1e9:.2f} GB")
+
+# Get memory summary
+print(torch.xpu.memory_summary(device=0))
+```
+
+### Memory Cleanup
+
+```python
+# Free unused cached memory
+torch.xpu.empty_cache()
+
+# Reset peak memory stats
+torch.xpu.reset_peak_memory_stats(0)
+
+# Reset all memory statistics
+torch.xpu.reset_accumulated_memory_stats(0)
+torch.xpu.reset_max_memory_allocated(0)
+torch.xpu.reset_max_memory_reserved(0)
+```
+
+## Precision Support
+
+### BFloat16 Support
+
+Intel GPUs provide native BFloat16 support for mixed precision training.
+
+```python
+import torch
+
+# Check BF16 support
+if torch.xpu.is_bf16_supported():
+    print("BFloat16 is supported on this Intel GPU")
+    
+    # Create BF16 tensors
+    tensor_bf16 = torch.randn(100, 100, dtype=torch.bfloat16, device='xpu')
+    
+    # Model with BF16
+    model = MyModel().to('xpu').to(dtype=torch.bfloat16)
+```
+
+### TF32 Support
+
+```python
+# Check TF32 support (available on Intel Xe architecture with DPAS)
+if torch.xpu.is_tf32_supported():
+    print("TF32 is supported")
+    
+    # TF32 support determined by subgroup matrix multiply-accumulate capability
+    props = torch.xpu.get_device_properties(0)
+    print(f"Has DPAS: {props.has_subgroup_matrix_multiply_accumulate}")
+```
+
+### Mixed Precision Training
+
+```python
+import torch
+from torch.cuda.amp import autocast, GradScaler  # Works with XPU
+
+model = MyModel().to('xpu')
+optimizer = torch.optim.Adam(model.parameters())
+scaler = GradScaler()
+
+for epoch in range(num_epochs):
+    for input, target in dataloader:
+        input = input.to('xpu')
+        target = target.to('xpu')
+        
+        optimizer.zero_grad()
+        
+        # Automatic mixed precision on Intel GPU
+        with autocast(device_type='xpu'):
+            output = model(input)
+            loss = criterion(output, target)
+        
+        # Scale loss and backward
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+```
+
+## Streams and Synchronization
+
+### XPU Streams
+
+```python
+import torch
+from torch.xpu import Stream
+
+# Create a new stream
+stream = Stream()
+
+# Use stream as context manager
+with torch.xpu.stream(stream):
+    # Operations in this block use the specified stream
+    x = torch.randn(1000, 1000, device='xpu')
+    y = x @ x.T
+
+# Wait for stream to complete
+stream.synchronize()
+```
+
+### Stream Synchronization
+
+```python
+# Create two streams
+stream1 = torch.xpu.Stream()
+stream2 = torch.xpu.Stream()
+
+with torch.xpu.stream(stream1):
+    x = torch.randn(100, 100, device='xpu')
+    y = x @ x.T
+
+with torch.xpu.stream(stream2):
+    z = torch.randn(100, 100, device='xpu')
+    
+    # Wait for stream1 to complete
+    stream2.wait_stream(stream1)
+    
+    # Now safe to use y from stream1
+    result = y + z
+```
+
+### Events
+
+```python
+from torch.xpu import Event
+
+# Create events for synchronization
+event = Event()
+
+# Record event
+event.record()
+
+# Perform operations
+output = model(input_tensor)
+
+# Wait for event
+event.wait()
+
+# Synchronize device
+torch.xpu.synchronize()
+```
+
+### Device Synchronization
+
+```python
+# Wait for all operations on current device
+torch.xpu.synchronize()
+
+# Wait for specific device
+torch.xpu.synchronize(device=0)
+
+# Query stream status
+stream = torch.xpu.Stream()
+with torch.xpu.stream(stream):
+    output = model(input)
+
+if stream.query():
+    print("Stream completed")
+else:
+    print("Stream still running")
+```
+
+## XPU Graphs
+
+Capture and replay operation sequences for reduced overhead.
+
+```python
+import torch
+
+# Create static inputs
+static_input = torch.randn(1000, 1000, device='xpu')
+static_output = torch.empty(1000, 1000, device='xpu')
+
+# Capture graph
+g = torch.xpu.XPUGraph()
+
+with torch.xpu.graph(g):
+    static_output = static_input @ static_input.T
+
+# Replay graph (much faster)
+for _ in range(100):
+    g.replay()
+```
+
+<Warning>
+XPU Graphs require static memory addresses. Don't allocate new tensors inside graph capture.
+</Warning>
+
+## Random Number Generation
+
+```python
+import torch
+
+# Set random seed for reproducibility
+torch.xpu.manual_seed(42)
+
+# Set seed for all XPUs
+torch.xpu.manual_seed_all(42)
+
+# Get/set RNG state
+rng_state = torch.xpu.get_rng_state()
+# ... perform operations ...
+torch.xpu.set_rng_state(rng_state)  # Restore state
+
+# Initial seed
+torch.xpu.initial_seed()
+```
+
+## Multi-GPU Training
+
+### DataParallel
+
+```python
+import torch
+import torch.nn as nn
+
+model = MyModel()
+if torch.xpu.device_count() > 1:
+    print(f"Using {torch.xpu.device_count()} Intel GPUs")
+    model = nn.DataParallel(model, device_ids=list(range(torch.xpu.device_count())))
+
+model = model.to('xpu')
+```
+
+### DistributedDataParallel
+
+```python
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+
+# Initialize process group with CCL backend
+dist.init_process_group(backend='ccl')  # Intel CCL for XPU
+
+local_rank = int(os.environ['LOCAL_RANK'])
+torch.xpu.set_device(local_rank)
+
+# Create model and move to XPU
+model = MyModel().to(f'xpu:{local_rank}')
+model = DDP(model)
+
+# Training loop
+for input, target in dataloader:
+    output = model(input.to(f'xpu:{local_rank}'))
+    loss = criterion(output, target.to(f'xpu:{local_rank}'))
+    loss.backward()
+    optimizer.step()
+```
+
+<Note>
+Intel GPUs use the CCL (Collective Communications Library) backend for distributed training instead of NCCL.
+</Note>
+
+## Performance Optimization
+
+### Best Practices
+
+```python
+import torch
+
+# 1. Keep tensors on XPU
+model = model.to('xpu')
+data = data.to('xpu')
+
+# 2. Use larger batch sizes
+train_loader = torch.utils.data.DataLoader(
+    dataset,
+    batch_size=128,  # Adjust based on GPU memory
+    num_workers=4
+)
+
+# 3. Enable TF32 if supported
+if torch.xpu.is_tf32_supported():
+    torch.backends.cudnn.allow_tf32 = True
+
+# 4. Use pinned memory for faster transfers
+train_loader = torch.utils.data.DataLoader(
+    dataset,
+    batch_size=32,
+    pin_memory=True
+)
+```
+
+### Profiling
+
+```python
+from torch.profiler import profile, ProfilerActivity
+
+with profile(
+    activities=[ProfilerActivity.CPU, ProfilerActivity.XPU],
+    record_shapes=True
+) as prof:
+    model(input_tensor.to('xpu'))
+    torch.xpu.synchronize()
+
+print(prof.key_averages().table(sort_by="self_xpu_time_total", row_limit=10))
+```
+
+## Device Context Managers
+
+### device Context Manager
+
+```python
+# Switch devices temporarily
+with torch.xpu.device(1):
+    # All operations use xpu:1
+    tensor = torch.randn(100, 100, device='xpu')
+    result = tensor @ tensor.T
+
+# Back to previous device
+```
+
+### device_of Context Manager
+
+```python
+# Use device of existing tensor
+tensor = torch.randn(100, 100, device='xpu:1')
+
+with torch.xpu.device_of(tensor):
+    # Operations use xpu:1
+    result = tensor * 2
+```
+
+## Common Issues
+
+<Warning>
+**Cannot re-initialize XPU in forked subprocess**
+
+Use the 'spawn' start method for multiprocessing:
+
+```python
+import torch.multiprocessing as mp
+mp.set_start_method('spawn')
+```
+</Warning>
+
+<Warning>
+**Out of Memory Errors**
+
+If you encounter OOM errors:
+
+1. Reduce batch size
+2. Use gradient accumulation
+3. Enable gradient checkpointing
+4. Clear cache: `torch.xpu.empty_cache()`
+5. Use mixed precision training
+</Warning>
+
+### Driver Compatibility
+
+```python
+import torch
+
+# Check if XPU is properly initialized
+if not torch.xpu.is_initialized():
+    print("XPU not initialized")
+    torch.xpu.init()
+
+# Verify device availability
+if torch.xpu.device_count() == 0:
+    print("No XPU devices found. Check driver installation.")
+```
+
+## Supported Intel GPU Architectures
+
+- **Intel Arc Graphics** (Alchemist, Battlemage)
+- **Intel Data Center GPU Max Series** (Ponte Vecchio)  
+- **Intel Iris Xe Graphics** (Integrated)
+- **Intel Flex Series** (Arctic Sound)
+
+```python
+# Check GPU architecture
+props = torch.xpu.get_device_properties(0)
+print(f"Device: {props.name}")
+print(f"Device type: {props.dev_type}")
+```
+
+## API Reference
+
+Key XPU functions and classes:
+
+- `torch.xpu.is_available()` - Check XPU availability
+- `torch.xpu.device_count()` - Get number of Intel GPUs
+- `torch.xpu.current_device()` - Get current device index  
+- `torch.xpu.get_device_name()` - Get device name
+- `torch.xpu.get_device_properties()` - Get device properties
+- `torch.xpu.memory_allocated()` - Get allocated memory
+- `torch.xpu.memory_reserved()` - Get reserved memory
+- `torch.xpu.synchronize()` - Synchronize all streams
+- `torch.xpu.Stream` - XPU stream for async operations
+- `torch.xpu.Event` - XPU event for synchronization
+- `torch.xpu.XPUGraph` - Capture and replay operation graphs
+- `torch.xpu.is_bf16_supported()` - Check BFloat16 support
+- `torch.xpu.is_tf32_supported()` - Check TF32 support
+
+For more information, see the [Intel Extension for PyTorch documentation](https://intel.github.io/intel-extension-for-pytorch/).

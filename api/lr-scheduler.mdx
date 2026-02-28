@@ -1,0 +1,557 @@
+---
+title: 'torch.optim.lr_scheduler - Learning Rate Schedulers'
+description: 'Learning rate scheduling strategies for optimization'
+---
+
+## Overview
+
+Learning rate schedulers provide different strategies for adjusting the learning rate during training. All schedulers inherit from `torch.optim.lr_scheduler.LRScheduler`.
+
+## Basic Usage
+
+```python
+import torch.optim as optim
+from torch.optim.lr_scheduler import StepLR
+
+optimizer = optim.SGD(model.parameters(), lr=0.1)
+scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
+
+for epoch in range(100):
+    for input, target in dataset:
+        optimizer.zero_grad()
+        output = model(input)
+        loss = loss_fn(output, target)
+        loss.backward()
+        optimizer.step()
+    scheduler.step()  # Update learning rate after each epoch
+```
+
+<Note>
+  Call `scheduler.step()` **after** `optimizer.step()` in each epoch.
+</Note>
+
+---
+
+## StepLR
+
+Decays the learning rate by `gamma` every `step_size` epochs.
+
+```python
+torch.optim.lr_scheduler.StepLR(optimizer, step_size, gamma=0.1, last_epoch=-1)
+```
+
+### Parameters
+
+<ParamField path="optimizer" type="Optimizer" required>
+  Wrapped optimizer
+</ParamField>
+
+<ParamField path="step_size" type="int" required>
+  Period of learning rate decay (in epochs)
+</ParamField>
+
+<ParamField path="gamma" type="float" default="0.1">
+  Multiplicative factor of learning rate decay
+</ParamField>
+
+<ParamField path="last_epoch" type="int" default="-1">
+  The index of last epoch. Use -1 for fresh training
+</ParamField>
+
+### Example
+
+```python
+# Assuming optimizer uses lr = 0.05 for all groups
+# lr = 0.05     if epoch < 30
+# lr = 0.005    if 30 <= epoch < 60
+# lr = 0.0005   if 60 <= epoch < 90
+scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
+for epoch in range(100):
+    train(...)
+    validate(...)
+    scheduler.step()
+```
+
+---
+
+## MultiStepLR
+
+Decays the learning rate by `gamma` at specified epoch milestones.
+
+```python
+torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones, gamma=0.1, last_epoch=-1)
+```
+
+### Parameters
+
+<ParamField path="optimizer" type="Optimizer" required>
+  Wrapped optimizer
+</ParamField>
+
+<ParamField path="milestones" type="list[int]" required>
+  List of epoch indices. Must be increasing
+</ParamField>
+
+<ParamField path="gamma" type="float" default="0.1">
+  Multiplicative factor of learning rate decay
+</ParamField>
+
+### Example
+
+```python
+# Assuming optimizer uses lr = 0.05 for all groups
+# lr = 0.05     if epoch < 30
+# lr = 0.005    if 30 <= epoch < 80
+# lr = 0.0005   if epoch >= 80
+scheduler = MultiStepLR(optimizer, milestones=[30,80], gamma=0.1)
+```
+
+---
+
+## ExponentialLR
+
+Decays the learning rate by `gamma` every epoch.
+
+```python
+torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma, last_epoch=-1)
+```
+
+### Parameters
+
+<ParamField path="optimizer" type="Optimizer" required>
+  Wrapped optimizer
+</ParamField>
+
+<ParamField path="gamma" type="float" required>
+  Multiplicative factor of learning rate decay
+</ParamField>
+
+### Example
+
+```python
+scheduler = ExponentialLR(optimizer, gamma=0.9)
+# lr_epoch = lr_initial * gamma^epoch
+```
+
+---
+
+## CosineAnnealingLR
+
+Sets the learning rate using a cosine annealing schedule.
+
+```python
+torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max, eta_min=0, last_epoch=-1)
+```
+
+### Parameters
+
+<ParamField path="optimizer" type="Optimizer" required>
+  Wrapped optimizer
+</ParamField>
+
+<ParamField path="T_max" type="int" required>
+  Maximum number of iterations (half period of the cosine schedule)
+</ParamField>
+
+<ParamField path="eta_min" type="float" default="0">
+  Minimum learning rate
+</ParamField>
+
+### Example
+
+```python
+scheduler = CosineAnnealingLR(optimizer, T_max=100, eta_min=0)
+# lr varies smoothly from initial_lr to eta_min over T_max epochs
+```
+
+### Formula
+
+```
+lr_t = eta_min + (lr_initial - eta_min) * (1 + cos(π * t / T_max)) / 2
+```
+
+---
+
+## ReduceLROnPlateau
+
+Reduces learning rate when a metric has stopped improving.
+
+```python
+torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1,
+                                           patience=10, threshold=1e-4,
+                                           threshold_mode='rel', cooldown=0,
+                                           min_lr=0, eps=1e-8)
+```
+
+### Parameters
+
+<ParamField path="optimizer" type="Optimizer" required>
+  Wrapped optimizer
+</ParamField>
+
+<ParamField path="mode" type="str" default="'min'">
+  One of `'min'` or `'max'`. In min mode, lr will be reduced when metric stops decreasing
+</ParamField>
+
+<ParamField path="factor" type="float" default="0.1">
+  Factor by which the learning rate will be reduced: `new_lr = lr * factor`
+</ParamField>
+
+<ParamField path="patience" type="int" default="10">
+  Number of epochs with no improvement after which learning rate will be reduced
+</ParamField>
+
+<ParamField path="threshold" type="float" default="1e-4">
+  Threshold for measuring the new optimum
+</ParamField>
+
+<ParamField path="threshold_mode" type="str" default="'rel'">
+  One of `'rel'` or `'abs'`. In rel mode, threshold is relative to best metric
+</ParamField>
+
+<ParamField path="cooldown" type="int" default="0">
+  Number of epochs to wait before resuming normal operation after lr has been reduced
+</ParamField>
+
+<ParamField path="min_lr" type="float | list[float]" default="0">
+  Scalar or list of scalars. Lower bound on learning rate
+</ParamField>
+
+### Example
+
+```python
+scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5)
+for epoch in range(100):
+    train(...)
+    val_loss = validate(...)
+    scheduler.step(val_loss)  # Pass the metric to monitor
+```
+
+<Note>
+  Unlike other schedulers, `ReduceLROnPlateau` requires a metric argument in `step()`.
+</Note>
+
+---
+
+## CyclicLR
+
+Sets the learning rate according to cyclical learning rate policy.
+
+```python
+torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr, max_lr, step_size_up=2000,
+                                  step_size_down=None, mode='triangular',
+                                  gamma=1.0, scale_fn=None, scale_mode='cycle',
+                                  cycle_momentum=True, base_momentum=0.8,
+                                  max_momentum=0.9, last_epoch=-1)
+```
+
+### Parameters
+
+<ParamField path="optimizer" type="Optimizer" required>
+  Wrapped optimizer
+</ParamField>
+
+<ParamField path="base_lr" type="float | list[float]" required>
+  Initial learning rate (lower boundary in the cycle)
+</ParamField>
+
+<ParamField path="max_lr" type="float | list[float]" required>
+  Upper learning rate boundary in the cycle
+</ParamField>
+
+<ParamField path="step_size_up" type="int" default="2000">
+  Number of training iterations in the increasing half of a cycle
+</ParamField>
+
+<ParamField path="mode" type="str" default="'triangular'">
+  One of `'triangular'`, `'triangular2'`, or `'exp_range'`
+</ParamField>
+
+### Example
+
+```python
+scheduler = CyclicLR(optimizer, base_lr=0.001, max_lr=0.1, step_size_up=2000, mode='triangular')
+for epoch in range(10):
+    for batch in train_loader:
+        train_batch(...)
+        optimizer.step()
+        scheduler.step()  # Call per batch, not per epoch
+```
+
+---
+
+## OneCycleLR
+
+Sets the learning rate according to the 1cycle learning rate policy.
+
+```python
+torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr, total_steps=None,
+                                    epochs=None, steps_per_epoch=None,
+                                    pct_start=0.3, anneal_strategy='cos',
+                                    cycle_momentum=True, base_momentum=0.85,
+                                    max_momentum=0.95, div_factor=25.0,
+                                    final_div_factor=1e4, last_epoch=-1)
+```
+
+### Parameters
+
+<ParamField path="optimizer" type="Optimizer" required>
+  Wrapped optimizer
+</ParamField>
+
+<ParamField path="max_lr" type="float | list[float]" required>
+  Upper learning rate boundary in the cycle
+</ParamField>
+
+<ParamField path="total_steps" type="int" optional>
+  Total number of steps in the cycle. Either provide this or (epochs, steps_per_epoch)
+</ParamField>
+
+<ParamField path="epochs" type="int" optional>
+  Number of epochs to train for
+</ParamField>
+
+<ParamField path="steps_per_epoch" type="int" optional>
+  Number of steps per epoch
+</ParamField>
+
+<ParamField path="pct_start" type="float" default="0.3">
+  Percentage of the cycle spent increasing the learning rate
+</ParamField>
+
+<ParamField path="anneal_strategy" type="str" default="'cos'">
+  One of `'cos'` or `'linear'`
+</ParamField>
+
+### Example
+
+```python
+scheduler = OneCycleLR(optimizer, max_lr=0.1, epochs=10, steps_per_epoch=100)
+for epoch in range(10):
+    for batch in train_loader:
+        train_batch(...)
+        optimizer.step()
+        scheduler.step()
+```
+
+---
+
+## LinearLR
+
+Decays the learning rate linearly.
+
+```python
+torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1.0/3, end_factor=1.0,
+                                  total_iters=5, last_epoch=-1)
+```
+
+### Parameters
+
+<ParamField path="optimizer" type="Optimizer" required>
+  Wrapped optimizer
+</ParamField>
+
+<ParamField path="start_factor" type="float" default="1.0/3">
+  The number we multiply learning rate in the first epoch
+</ParamField>
+
+<ParamField path="end_factor" type="float" default="1.0">
+  The number we multiply learning rate at the end of linear changing process
+</ParamField>
+
+<ParamField path="total_iters" type="int" default="5">
+  Number of iterations that multiplicative factor reaches end_factor
+</ParamField>
+
+---
+
+## ConstantLR
+
+Multiplies the learning rate by a constant factor.
+
+```python
+torch.optim.lr_scheduler.ConstantLR(optimizer, factor=1.0/3, total_iters=5, last_epoch=-1)
+```
+
+### Parameters
+
+<ParamField path="optimizer" type="Optimizer" required>
+  Wrapped optimizer
+</ParamField>
+
+<ParamField path="factor" type="float" default="1.0/3">
+  The number we multiply learning rate until total_iters
+</ParamField>
+
+<ParamField path="total_iters" type="int" default="5">
+  Number of epochs with constant learning rate
+</ParamField>
+
+---
+
+## PolynomialLR
+
+Decays the learning rate using a polynomial function.
+
+```python
+torch.optim.lr_scheduler.PolynomialLR(optimizer, total_iters=5, power=1.0, last_epoch=-1)
+```
+
+### Parameters
+
+<ParamField path="optimizer" type="Optimizer" required>
+  Wrapped optimizer
+</ParamField>
+
+<ParamField path="total_iters" type="int" default="5">
+  Number of iterations to decay learning rate
+</ParamField>
+
+<ParamField path="power" type="float" default="1.0">
+  Power of the polynomial
+</ParamField>
+
+---
+
+## LambdaLR
+
+Sets the learning rate to a custom lambda function.
+
+```python
+torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda, last_epoch=-1)
+```
+
+### Parameters
+
+<ParamField path="optimizer" type="Optimizer" required>
+  Wrapped optimizer
+</ParamField>
+
+<ParamField path="lr_lambda" type="function | list[function]" required>
+  Function or list of functions that computes a multiplicative factor given an integer epoch
+</ParamField>
+
+### Example
+
+```python
+lambda1 = lambda epoch: epoch // 30
+lambda2 = lambda epoch: 0.95 ** epoch
+scheduler = LambdaLR(optimizer, lr_lambda=[lambda1, lambda2])
+```
+
+---
+
+## ChainedScheduler
+
+Chains multiple learning rate schedulers.
+
+```python
+torch.optim.lr_scheduler.ChainedScheduler(schedulers)
+```
+
+### Parameters
+
+<ParamField path="schedulers" type="list" required>
+  List of chained schedulers
+</ParamField>
+
+### Example
+
+```python
+scheduler1 = ConstantLR(optimizer, factor=0.1, total_iters=2)
+scheduler2 = ExponentialLR(optimizer, gamma=0.9)
+scheduler = ChainedScheduler([scheduler1, scheduler2])
+```
+
+---
+
+## SequentialLR
+
+Receives a list of schedulers and milestones to switch between them.
+
+```python
+torch.optim.lr_scheduler.SequentialLR(optimizer, schedulers, milestones, last_epoch=-1)
+```
+
+### Parameters
+
+<ParamField path="optimizer" type="Optimizer" required>
+  Wrapped optimizer
+</ParamField>
+
+<ParamField path="schedulers" type="list" required>
+  List of schedulers
+</ParamField>
+
+<ParamField path="milestones" type="list[int]" required>
+  List of integers that reflects milestone points
+</ParamField>
+
+### Example
+
+```python
+scheduler1 = ConstantLR(optimizer, factor=0.1, total_iters=2)
+scheduler2 = ExponentialLR(optimizer, gamma=0.9)
+scheduler = SequentialLR(optimizer, schedulers=[scheduler1, scheduler2], milestones=[2])
+# Uses scheduler1 for epochs [0, 1], then scheduler2 for epochs [2, ...]
+```
+
+---
+
+## Common Methods
+
+All schedulers implement these methods:
+
+### step()
+
+```python
+scheduler.step(epoch=None)
+```
+
+Update the learning rate.
+
+### get_last_lr()
+
+```python
+lr_list = scheduler.get_last_lr()
+```
+
+Return last computed learning rate by scheduler.
+
+### state_dict()
+
+```python
+state = scheduler.state_dict()
+```
+
+Return the state of the scheduler as a dict.
+
+### load_state_dict()
+
+```python
+scheduler.load_state_dict(state_dict)
+```
+
+Load the scheduler's state.
+
+---
+
+## Cheat Sheet
+
+| Scheduler | Use Case |
+|-----------|----------|
+| **StepLR** | Drop LR by a factor every N epochs |
+| **MultiStepLR** | Drop LR at specific epoch milestones |
+| **ExponentialLR** | Exponential decay each epoch |
+| **CosineAnnealingLR** | Cosine annealing for smooth decay |
+| **ReduceLROnPlateau** | Reduce LR when validation metric plateaus |
+| **CyclicLR** | Cyclical learning rates (per batch) |
+| **OneCycleLR** | Super-convergence with 1cycle policy |
+| **LinearLR** | Linear warmup or decay |
+
+---
+
+## See Also
+
+- [Optimizers](/api/optim) - Optimization algorithms
+- [Learning Rate Finder Tutorial](https://pytorch.org/tutorials/intermediate/learning_rate_tutorial.html)
